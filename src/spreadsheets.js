@@ -1,6 +1,7 @@
 ﻿/// <reference path="ui.js" />
 /*
 * spreadsheets.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:54
 */
 (function (window, undefined) {

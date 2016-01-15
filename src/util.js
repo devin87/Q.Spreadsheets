@@ -2,6 +2,7 @@
 /// <reference path="../lib/Q.UI.js" />
 /*
 * util.js
+* author:devin87@qq.com
 * update: 2015/11/26 14:28
 */
 (function (window, undefined) {

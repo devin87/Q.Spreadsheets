@@ -1,15 +1,21 @@
 ﻿/*
 * events.js
-* update: 2016-01-14 10:08
+* author:devin87@qq.com
+* update: 2016/01/15 12:58
 */
-Q.SS.Events = {
-    LOAD: "load",
+(function () {
+    "use strict";
 
-    WORKBOOK_READY: "workbook:ready",
+    Q.SS.Events = {
+        LOAD: "load",
 
-    SHEET_BEFORE: "sheet:before",
-    SHEET_READY: "sheet:ready",
-    SHEET_LOAD: "sheet:load",
+        WORKBOOK_READY: "workbook:ready",
 
-    UI_RESIZE: "ui:resize"
-};
+        SHEET_BEFORE: "sheet:before",
+        SHEET_READY: "sheet:ready",
+        SHEET_LOAD: "sheet:load",
+
+        UI_RESIZE: "ui:resize"
+    };
+
+})();

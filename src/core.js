@@ -1,6 +1,7 @@
 ﻿/// <reference path="util.js" />
 /*
 * core.js
+* author:devin87@qq.com
 * update: 2015/11/26 14:34
 */
 (function (window, undefined) {

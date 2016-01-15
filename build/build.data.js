@@ -12,7 +12,8 @@ module.exports = {
             {
                 dir: "src",
                 src: ["init.js", "util.js", "core.js", "events.js", "errors.js", "cell-format.parse.js", "cell-format.js", "cell-formula.parse.js", "cell-formula.js", "cell-style.js", "workbook.js", "ui.js", "ui.toolbar.js", "ui.formulabar.js", "ui.cell-format.js", "ui.cell-formula.js", "ui.grid.js", "ui.footbar.js", "spreadsheets.js"],
-                dest: "/Q.Spreadsheets.js"
+                dest: "/Q.Spreadsheets.js",
+                prefix: "/* Web Spreadsheets, https://github.com/devin87/Q.Spreadsheets */\n"
             },
             {
                 dir: "lib",

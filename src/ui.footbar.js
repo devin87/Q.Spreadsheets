@@ -1,6 +1,7 @@
 ﻿/// <reference path="ui.js" />
 /*
 * ui.footbar.js 底部栏操作
+* author:devin87@qq.com
 * update: 2015/01/15 11:58
 */
 (function (window, undefined) {

@@ -1,6 +1,7 @@
 ﻿/// <reference path="core.js" />
 /*
 * cell-format.parse.js
+* author:devin87@qq.com & zhangxin
 * update: 2015/11/26 14:33
 */
 (function (window, undefined) {

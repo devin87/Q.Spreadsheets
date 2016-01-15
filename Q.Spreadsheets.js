@@ -1,5 +1,7 @@
+/* Web Spreadsheets, https://github.com/devin87/Q.Spreadsheets */
 ﻿/*
 * init.js
+* author:devin87@qq.com
 * update: 2015/11/19 17:25
 */
 (function (window, undefined) {
@@ -8,6 +10,7 @@
 
 ﻿/*
 * util.js
+* author:devin87@qq.com
 * update: 2015/11/26 14:28
 */
 (function (window, undefined) {
@@ -211,6 +214,7 @@
 
 ﻿/*
 * core.js
+* author:devin87@qq.com
 * update: 2015/11/26 14:34
 */
 (function (window, undefined) {
@@ -276,33 +280,49 @@
 
 ﻿/*
 * events.js
-* update: 2016-01-14 10:08
+* author:devin87@qq.com
+* update: 2016/01/15 12:58
 */
-Q.SS.Events = {
-    LOAD: "load",
+(function () {
+    "use strict";
 
-    WORKBOOK_READY: "workbook:ready",
+    Q.SS.Events = {
+        LOAD: "load",
 
-    SHEET_BEFORE: "sheet:before",
-    SHEET_READY: "sheet:ready",
-    SHEET_LOAD: "sheet:load",
+        WORKBOOK_READY: "workbook:ready",
 
-    UI_RESIZE: "ui:resize"
-};
+        SHEET_BEFORE: "sheet:before",
+        SHEET_READY: "sheet:ready",
+        SHEET_LOAD: "sheet:load",
 
-﻿Q.SS.Errors = {
-    PARAMETER_ERROR: -2,
-    SHEET_NOT_FOUND: -3,
-    SHEET_ALREADY_EXISTS: -4,
-    SHEET_NAME_NOT_FOUND: -5,
-    SHEET_NAME_ALREADY_EXISTS: -6,
-    SHEET_INDEX_IS_SAME: -7,
-    SHEET_NAME_IS_SAME: -8,
-    SHEET_NUMBER_LESS_TWO: -9
-};
+        UI_RESIZE: "ui:resize"
+    };
+
+})();
+
+﻿/*
+* errors.js
+* author:devin87@qq.com
+* update: 2016/01/15 12:58
+*/
+(function () {
+    "use strict";
+
+    Q.SS.Errors = {
+        PARAMETER_ERROR: -2,
+        SHEET_NOT_FOUND: -3,
+        SHEET_ALREADY_EXISTS: -4,
+        SHEET_NAME_NOT_FOUND: -5,
+        SHEET_NAME_ALREADY_EXISTS: -6,
+        SHEET_INDEX_IS_SAME: -7,
+        SHEET_NAME_IS_SAME: -8,
+        SHEET_NUMBER_LESS_TWO: -9
+    };
+})();
 
 ﻿/*
 * cell-format.parse.js
+* author:devin87@qq.com & zhangxin
 * update: 2015/11/26 14:33
 */
 (function (window, undefined) {
@@ -1660,6 +1680,7 @@ Q.SS.Events = {
 
 ﻿/*
 * cell-format.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:05
 */
 (function (window, undefined) {
@@ -1670,6 +1691,7 @@ Q.SS.Events = {
 
 ﻿/*
 * cell-formula.parse.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:05
 */
 (function (window, undefined) {
@@ -1680,6 +1702,7 @@ Q.SS.Events = {
 
 ﻿/*
 * cell-formula.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:21
 */
 (function (window, undefined) {
@@ -1690,6 +1713,7 @@ Q.SS.Events = {
 
 ﻿/*
 * cell-style.js
+* author:devin87@qq.com
 * update: 2015/11/19 17:21
 */
 (function (window, undefined) {
@@ -1699,6 +1723,7 @@ Q.SS.Events = {
 
 ﻿/*
 * workbook.js
+* author:devin87@qq.com
 * update: 2015/12/02 12:17
 */
 (function (window, undefined) {
@@ -2175,6 +2200,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.js
+* author:devin87@qq.com
 * update: 2015/11/23 17:33
 */
 (function (window, undefined) {
@@ -2343,6 +2369,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.toolbar.js 工具栏操作
+* author:devin87@qq.com
 * update: 2015/12/02 16:39
 */
 (function (window, undefined) {
@@ -2378,6 +2405,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.formulabar.js 公式栏操作
+* author:devin87@qq.com
 * update: 2015/12/02 16:39
 */
 (function (window, undefined) {
@@ -2414,6 +2442,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.cell-format.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:20
 */
 (function (window, undefined) {
@@ -2424,6 +2453,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.cell-formula.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:21
 */
 (function (window, undefined) {
@@ -2434,6 +2464,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.grid.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:39
 */
 (function (window, undefined) {
@@ -2444,6 +2475,7 @@ Q.SS.Events = {
 
 ﻿/*
 * ui.footbar.js 底部栏操作
+* author:devin87@qq.com
 * update: 2015/01/15 11:58
 */
 (function (window, undefined) {
@@ -2743,6 +2775,7 @@ Q.SS.Events = {
 
 ﻿/*
 * spreadsheets.js
+* author:devin87@qq.com
 * update: 2016/01/15 11:54
 */
 (function (window, undefined) {

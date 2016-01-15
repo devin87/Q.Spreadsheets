@@ -3,6 +3,7 @@
 /// <reference path="lang/zh_CN.js" />
 /*
 * workbook.js
+* author:devin87@qq.com
 * update: 2015/12/02 12:17
 */
 (function (window, undefined) {

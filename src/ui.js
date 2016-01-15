@@ -2,6 +2,7 @@
 /// <reference path="events.js" />
 /*
 * ui.js
+* author:devin87@qq.com
 * update: 2015/11/23 17:33
 */
 (function (window, undefined) {

@@ -1,6 +1,7 @@
 ﻿/// <reference path="ui.js" />
 /*
 * ui.formulabar.js 公式栏操作
+* author:devin87@qq.com
 * update: 2015/12/02 16:39
 */
 (function (window, undefined) {
