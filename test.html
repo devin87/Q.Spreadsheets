@@ -1,0 +1,41 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Q.SpreadSheets</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,mininum-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="css/Q.css" />
+    <link rel="stylesheet" type="text/css" href="css/Q.Spreadsheets.css" />
+</head>
+<body>
+    <div class="view"></div>
+    <script type="text/javascript" src="lib/Q.js"></script>
+    <script type="text/javascript" src="lib/Q.UI.js"></script>
+    <script type="text/javascript" src="src/lang/zh_CN.js"></script>
+    <script type="text/javascript" src="src/init.js"></script>
+    <script type="text/javascript" src="src/util.js"></script>
+    <script type="text/javascript" src="src/core.js"></script>
+    <script type="text/javascript" src="src/events.js"></script>
+    <script type="text/javascript" src="src/errors.js"></script>
+    <script type="text/javascript" src="src/cell-format.parse.js"></script>
+    <script type="text/javascript" src="src/cell-format.js"></script>
+    <script type="text/javascript" src="src/cell-formula.parse.js"></script>
+    <script type="text/javascript" src="src/cell-formula.js"></script>
+    <script type="text/javascript" src="src/cell-style.js"></script>
+    <script type="text/javascript" src="src/workbook.js"></script>
+    <script type="text/javascript" src="src/ui.js"></script>
+    <script type="text/javascript" src="src/ui.toolbar.js"></script>
+    <script type="text/javascript" src="src/ui.formulabar.js"></script>
+    <script type="text/javascript" src="src/ui.cell-format.js"></script>
+    <script type="text/javascript" src="src/ui.cell-formula.js"></script>
+    <script type="text/javascript" src="src/ui.grid.js"></script>
+    <script type="text/javascript" src="src/ui.footbar.js"></script>
+    <script type="text/javascript" src="src/spreadsheets.js"></script>
+
+    <script type="text/javascript">
+        window.ss = new Q.Spreadsheets({
+            view: $(".view")[0]
+        });
+    </script>
+</body>
+</html>

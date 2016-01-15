@@ -1,0 +1,145 @@
+﻿/*=============全局样式================*/
+body, dl, dt, dd, p, table, form, nav, ul, ol, input, select { margin: 0; padding: 0; }
+body { color: #333; font: 14px/1.6 Verdana,"微软雅黑",Tahoma; }
+h1, h2, h3, h4, h5, h6 { font-size: 100%; margin: 0; padding: 0; font-weight: normal; }
+ol, ul { list-style: none; }
+input, select { outline: none; }
+table, img { border: none; }
+table { border-collapse: collapse; border-spacing: 0; }
+
+a.link { color: #369; }
+a.link:hover { text-decoration: underline; }
+
+a.text { cursor: text; }
+
+.fl { float: left; }
+.fr { float: right; }
+.clear { clear: both; }
+
+.hot { color: red; }
+.green { color: green; }
+.blue { color: blue; }
+
+.bold { font-weight: bold; }
+.light { background-color: #fce365; }
+
+/*------------------通用样式------------------*/
+.inline-block { display: inline-block; *display: inline; *zoom: 1; vertical-align: top; }
+
+.hide { display: none; }
+
+.arrow { width: 0; height: 0; border: 5px solid transparent; overflow: hidden; cursor: pointer; }
+/*.arrow-right { border-color: #f9f9f9 #f9f9f9 #f9f9f9 #336699; margin: 8px 3px 0; }
+.arrow-down { border-color: #336699 #f9f9f9 #f9f9f9 #f9f9f9; margin: 10px 6px 0 0; }*/
+
+/*------------按钮样式-------------*/
+.w-button { min-width: 46px; _width: 46px; height: 22px; padding: 3px 16px; font: bold 13px/22px 微软雅黑; *line-height: 20px; cursor: pointer; text-align: center; white-space: nowrap; }
+
+.w-red { background: #D24726; color: #fff; }
+.w-red:hover { background: #e17961; color: #fff; }
+
+.w-green { background: #217245; color: #fff; }
+.w-green:hover { background: #33935e; color: #fff; }
+
+.w-blue { background: #0072C6; color: #fff; }
+.w-blue:hover { background: #3D94D4; color: #fff; }
+
+.w-dark { background: #ccc; color: #333; }
+.w-dark:hover { background: #dddcdc; color: #333; }
+
+.w-light { background: #EFEFEF; color: #333; }
+.w-light:hover { background: #ddd; color: #333; }
+
+.w-disabled, .w-disabled:hover { background: #ddd; color: #999; cursor: default; }
+
+/*------------遮罩层--------------*/
+.x-mask { position: fixed; _position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 999; }
+.x-drag-shadow { position: absolute; left: 0; top: 0; background-color: #f1f1f1; cursor: move; display: none; z-index: 999999; }
+
+/*------------弹出层--------------*/
+.x-box { position: absolute; background: #fff; border: 1px solid #ccc; z-index: 1000; }
+.x-box .x-head { position: relative; background: #f6f6f6 url(../images/Q/bg-head.png) repeat-x left bottom; height: 32px; line-height: 32px; border-bottom: 1px solid #ddd; }
+.x-head .x-title { position: absolute; left: 0; background: url(../images/Q/ico.gif) 5px 12px no-repeat; padding-left: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: #336699; }
+.x-head .x-close { position: absolute; right: 6px; cursor: pointer; width: 24px; text-align: center; font: bold 14px/32px verdana,Arial; color: #336699; }
+.x-head .x-close:hover { font-size: 16px; }
+
+.x-box .x-main { padding: 10px; font-size: 14px; word-wrap: break-word; overflow: auto; }
+
+.x-main .x-ico { width: 40px; }
+.x-main .x-ico div.ico { width: 32px; height: 32px; }
+
+.x-dialog { line-height: 1.6em; padding-top: 3px; }
+
+.x-bottom { text-align: center; padding-top: 10px; }
+.x-cancel { margin-left: 10px; }
+
+.x-input { margin-top: 5px; }
+.x-input input { height: 24px; line-height: 24px; width: 98%; padding-left: 5px; }
+
+.x-alert { background: url(../images/Q/alert.gif) no-repeat; }
+.x-loading { background: url(../images/Q/loading.gif) no-repeat; }
+
+.x-box-auto .x-main { padding-bottom: 0; }
+.x-box-auto .x-view { margin-bottom: 10px; }
+
+/* --------------- 进度条 --------------- */
+.progress-bar { width: 100%; background-color: #ccc; }
+.progress { width: 0.1%; height: 8px; overflow: hidden; background-color: #2B85E9; }
+
+/*---------------------------XPanel-----------------------*/
+.x-panel { background-color: #fff; border: 1px solid #ddd; padding: 1px 0; cursor: default; position: absolute; z-index: 99; overflow: auto; font: 14px verdana,tahoma,宋体; }
+.x-panel .x-item { color: #000; padding: 2px 1px; /**padding: 8px 1px 3px 1px;*/ margin: 2px 3px; height: 24px; line-height: 24px; position: relative; }
+.x-panel .x-disabled { color: #808080; }
+.x-panel .x-on { background-color: #eee; }
+
+.x-panel .x-icon { width: 24px; height: 20px; text-align: center; position: absolute; margin-top: 2px; }
+.x-panel .x-icon img { width: 20px; height: 20px; }
+.x-panel .x-text { overflow: hidden; position: absolute; left: 30px; height: 24px; }
+.x-panel .arrow { border-left-color: #333; _border-color: #fff #fff #fff #333; position: absolute; right: 3px; margin-top: 7px; cursor: default; }
+.x-panel .x-on .arrow { _border-color: #eee #eee #eee #333; }
+
+.x-split { height: 1px; background-color: #eee; margin: 4px 3px; overflow: hidden; }
+/*.x-split { background: url(../images/Q/line.gif) center repeat-x; margin: 0 2px; height: 6px; overflow: hidden; }*/
+
+/*---------------------------Dropdownlist-----------------------*/
+/* IE6、7 relative bug:若父级元素设置了overflow:auto,则该元素不会随滚动条滚动。fix:将该元素的父级元素也加上 relative  */
+.x-sel { cursor: default; position: relative; height: 26px; font-size: 14px; }
+.x-sel-tag { position: relative; height: 26px; background-color: #fff; border: 1px solid #d5d5d5; overflow: hidden; }
+.x-sel-text, .x-sel-arrow { position: absolute; top: 0; height: 26px; line-height: 24px; }
+.x-sel-text { left: 0; padding: 0 6px; overflow: hidden; color: #555; }
+.x-sel-arrow { right: -1px; width: 26px; background-color: #c3c3c3; }
+.x-sel-arrow .arrow-down { cursor: default; border-width: 6px; border-color: #444 #c3c3c3 #c3c3c3 #c3c3c3; margin: 11px 0 0 7px; }
+
+.x-sel-list { -moz-user-select: none; /*火狐*/ -webkit-user-select: none; /*webkit浏览器*/ -ms-user-select: none; /*IE10*/ -khtml-user-select: none; /*早期浏览器*/ user-select: none; }
+.x-sel-list .x-item { padding: 0 4px; color: #555; }
+.x-sel-list .x-disabled { color: #808080; }
+.x-sel-list .selected { background-color: #49f; color: #fff; }
+
+.x-sel-radius { -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px; }
+.x-sel-radius .x-sel-arrow { -webkit-border-radius: 0 3px 3px 0; -moz-border-radius: 0 3px 3px 0; border-radius: 0 3px 3px 0; }
+
+.x-sel-mini .x-sel-tag, .x-sel-mini .x-sel-text, .x-sel-mini .x-sel-arrow { height: 22px; line-height: 20px; }
+.x-sel-mini .x-sel-arrow { width: 22px; }
+.x-sel-mini .x-sel-arrow .arrow-down { margin: 8px 0 0 5px; }
+
+/* --------------- 颜色选择器 --------------- */
+.x-picker { position: absolute; width: 231px; border-style: solid; border-color: #000; border-width: 1px 0 0 1px; font-size: 12px; font-family: "宋体", Arial; z-index: 999; }
+.x-picker .xp-title { height: 25px; padding-top: 4px; background: #E4E4E4; border-style: solid; border-color: #000; border-width: 0 1px 1px 0; }
+.x-picker .xp-preview { float: left; width: 50px; height: 20px; border: 1px solid #333; background: #FFF; margin-left: 5px; display: inline; }
+.x-picker .xp-val { float: left; width: 80px; text-align: center; line-height: 20px; }
+.x-picker .xp-type { float: right; margin-right: 6px; display: inline; }
+.x-picker .xp-table table { table-layout: fixed; width: 0; height: 132px; border-collapse: collapse; cursor: default; }
+.x-picker .xp-table td { width: 10px; height: 10px; padding: 0; border-style: solid; border-color: #000; border-width: 0 1px 1px 0; }
+
+/* --------------- 分页按钮 --------------- */
+.pager { text-align: center; margin-top: 15px; }
+.pager li { display: inline-block; *display: inline; *zoom: 1; cursor: pointer; background-color: #a4a4a4; color: #fff; margin-right: 5px; line-height: 17px; font-family: 微软雅黑; }
+/*.pager li:hover { background-color: #5ac7f1; }*/
+.pager li, .pager .pager-link a { padding: 4px 8px; /*min-width: 16px;*/ }
+.pager li:hover, .pager li.on { background-color: #06A4E1; }
+.pager-bar a { color: #fff; text-decoration: none; }
+.pager .pager-link li { padding: 0; }
+.pager .pager-link a { display: block; }
+.pager .count, .pager-count { margin-left: 15px; line-height: 24px; }
+.pager .page-size { font-weight: bold; color: red; }
+.pager .total-count { font-weight: bold; color: green; }

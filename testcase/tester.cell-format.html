@@ -1,0 +1,250 @@
+﻿<!doctype html>
+<html>
+<head>
+    <title>Excel 单元格格式解析测试</title>
+    <meta charset="utf-8" />
+    <script type="text/javascript" src="../lib/Q.js"></script>
+    <script type="text/javascript" src="../src/util.js"></script>
+    <script type="text/javascript" src="../src/core.js"></script>
+    <script type="text/javascript" src="../src/cell-format.parse.js"></script>
+</head>
+<body>
+    <div id="result"></div>
+
+    <script type="text/javascript">
+        var SS = Q.SS,
+
+            numberToDate = SS.numberToDate,
+            dateToNumber = SS.dateToNumber,
+
+            CellFormatter = SS.CellFormatter,
+            getCellFormatter = SS.getCellFormatter;
+
+        function get(id) {
+            return document.getElementById(id);
+        }
+
+        function log(msg) {
+            //get("result").innerHTML += (msg || "") + "<br/>";
+            $("#result").append((msg || "") + "<br/>");
+        }
+
+        function Tester() {
+            this.list = [];
+        }
+
+        Tester.prototype = {
+            add: function (tester) {
+                this.list.push(tester);
+            },
+            start: function () {
+                var list = this.list, totalCount = list.length, sucessCount = 0, failureCount = 0, totalCompilerTime = 0, totalParseTime = 0;
+
+                log('<div id="totalInfo"></div>');
+
+                var AVG_COUNT = 100;
+
+                for (var i = 0, len = list.length; i < len; i++) {
+                    (function (tester, i) {
+                        window.setTimeout(function () {
+                            var //d1 = +new Date,
+                                //tester = list[i],
+                                format = tester.format,
+                                value = tester.value,
+                                //d1 = +new Date,
+                                cf = getCellFormatter(format),
+                                //d2 = +new Date;
+                            result = cf.format(value);
+
+                            //平均编译时间
+                            var d1 = +new Date;
+                            for (var j = 0; j < AVG_COUNT; j++) new CellFormatter(format);
+                            var d2 = +new Date;
+
+                            //平均解析时间
+                            var d3 = +new Date;
+                            for (var k = 0; k < AVG_COUNT; k++) cf.format(value);
+                            var d4 = +new Date;
+
+                            var successed = tester.result == result;
+                            if (successed) sucessCount++;
+                            else failureCount++;
+
+                            var compilerTime = (d2 - d1) / AVG_COUNT, parseTime = (d4 - d3) / AVG_COUNT;
+                            totalCompilerTime += compilerTime;
+                            totalParseTime += parseTime;
+
+                            get("totalInfo").innerHTML = '测试实例: <span style="color:green;">' + (sucessCount + failureCount) + '</span> / ' + totalCount + ' 通过实例: <span style="color:green;">' + sucessCount + '</span> , 失败实例: <span style="color:red;">' + failureCount + '</span> 编译用时: <span style="color:green;">' + totalCompilerTime.toFixed(2) + '</span>ms , 解析用时: <span style="color:green;">' + totalParseTime.toFixed(2) + '</span>ms';
+
+                            log("value: " + (tester.text || value));
+                            log("format: " + format);
+                            log("预期结果: {" + tester.result + "}");
+                            log("实际结果: {" + result + "}");
+                            log("测试结果 : " + (successed ? '<span style="color:green;">通过</span>' : '<span style="color:red;">失败</span>'));
+                            log("编译时间: " + compilerTime.toFixed(2) + "ms");
+                            log("解析时间: " + parseTime.toFixed(2) + "ms");
+                            log("");
+                        }, i * 10);
+                    })(list[i], i);
+                }
+            }
+        };
+
+        function test() {
+            var tester = new Tester;
+
+            //日期格式测试
+            var date = Date.from("2001/2/25 18:09:37"),
+                value = dateToNumber(date),
+                text = date.format("yyyy/MM/dd HH:mm:ss 周W");
+
+            tester.add({ text: text, value: value, format: "[DBNum1]h\"mm1\" yyyy-mm-dd-m-h-yy-m-d-s-yyyy-mm-\"s2\"-dd/yy-m-s", result: "十八mm1 二○○一-○九-二十五-二-十八-○一-九-二十五-三十七-二○○一-○二-s2-二十五/○一-九-三十七" });
+            tester.add({ text: text, value: value, format: "yyyy/mm/dd hh:mm:ss 上午/下午", result: "2001/02/25 06:09:37 下午" });
+            tester.add({ text: text, value: value, format: "[h]", result: "886746" });
+            tester.add({ text: text, value: value, format: "dd-mmm-yy dddd aaaa", result: "25-Feb-01 Sunday 星期日" });
+            tester.add({ text: text, value: value, format: '[DBNum2]yyyy"年"m"月"d"日" ddd AM/PM', result: "贰零零壹年贰月贰拾伍日 Sun PM" });
+            tester.add({ text: text, value: value, format: "dd/mmmm/yy e:h:m:s", result: "25/February/01 2001:18:9:37" });
+            tester.add({ text: text, value: value, format: "\"引号测试m1={m2+m3}\"\\ s\"秒\":\\ yyyy\"年\"m\"分\"d\"日\";@", result: "引号测试m1={m2+m3} 37秒: 2001年9分25日" });
+            tester.add({ text: text, value: value, format: "\\\"hh:mm:ss\\\"\\ yyyy/m/d", result: '"18:09:37" 2001/2/25' });
+            tester.add({ text: text, value: value, format: "yyyy/m/d h:mm", result: '2001/2/25 18:09' });
+            tester.add({ text: text, value: value, format: "[$-804]aaa;@", result: '周日' });
+            tester.add({ text: text, value: value, format: "[$-804]aaaa;@", result: '星期日' });
+            tester.add({ text: text, value: value, format: "[$-409]aaa;@", result: 'Sun' });
+            tester.add({ text: text, value: value, format: "[$-409]aaaa;@", result: 'Sunday' });
+            tester.add({ text: text, value: value, format: "[$-804]ddd;@", result: '周日' });
+            tester.add({ text: text, value: value, format: "[$-804]dddd;@", result: '星期日' });
+            tester.add({ text: text, value: value, format: "[$-409]ddd;@", result: 'Sun' });
+            tester.add({ text: text, value: value, format: "[$-409]dddd;@", result: 'Sunday' });
+
+            //数字格式测试
+            tester.add({ value: 1234.567, format: '#,##"a"0.00', result: "1,23a4.57" });
+            tester.add({ value: 125635984945, format: "[DBNum2]¥#,##0.00_);[red](¥#,##0.00)", result: "¥壹贰伍,陆叁伍,玖捌肆,玖肆伍.零零 " });
+            tester.add({ value: 210056643.987, format: "[DBNum2]General", result: "贰亿壹仟零伍万陆仟陆佰肆拾叁.玖捌柒" });
+            tester.add({ value: 13957256113, format: "000!.0000!?0000!;", result: "139.5725?6113;" });
+            tester.add({ value: -28.79, format: "0.00_);[color:#800000]\\(0.00\\)", result: '<span class="cell-format" style="color:#800000;">(28.79)</span>' });
+            tester.add({ value: 9, format: '\'"你""好""啊"\:\'General', result: "'你好啊:'9" });
+            tester.add({ value: 22.6, format: "[red][>22.5]General;[green][>0]general;", result: '<span class="cell-format" style="color:red;">22.6</span>' });
+            tester.add({ value: 22.4, format: "[red][>22.5]General;[green][>0]general;", result: '<span class="cell-format" style="color:green;">22.4</span>' });
+            tester.add({ value: "abc号", format: "[blue][>500]General;[green][>0]General;General", result: '<span class="cell-format" style="color:blue;">abc号</span>' });
+            tester.add({ value: 258.347, format: '0.00E+00', result: "2.58E+02" });
+            tester.add({ value: -258.347, format: '0.000%', result: "-25834.700%" });
+            tester.add({ value: -258.347, format: '0.00;[red]0.00', result: '<span class="cell-format" style="color:red;">258.35</span>' });
+            tester.add({ value: -258.347, format: '[DBNum1][green]"the result is:"!"general!"";very good!"', result: '<span class="cell-format" style="color:green;">-the result is:"二百五十八.三四七";very good!</span>' });
+            tester.add({ value: 1568300.22135, format: '诺g亚!:general_很好嘛!!', result: "诺g亚:1568300.22135  好嘛!" });  //excel不能解析英文g:诺亚:45.1399979 好嘛!
+            tester.add({ value: 1568300.22635, format: '###,0.00', result: "1,568,300.23" });
+            tester.add({ value: -28.79, format: '0.00_);[color9]\\(0.00\\)', result: "(28.79)" });
+            tester.add({ value: 45.66, format: '[color8]\"¥\"#,##0.00;\"¥\"\\-#,##0.00', result: "¥45.66" });
+            tester.add({ value: 0, format: '[red]\"盈余;\"[$$-409]#,##0.00;\\-[$$-409]#,##0.00', result: '<span class="cell-format" style="color:red;">盈余;$0.00</span>' });
+            tester.add({ value: -15964.354, format: '_ \"￥\"* #,##0.00_ ;_ \"￥\"* \\-#,##0.00_ ;_ \"￥\"* \"-\"??_ ;_ @_ ', result: " ￥ -15,964.35 " });
+            tester.add({ value: -127006.54, format: '[$hk$-c04]#,##0.00;[red][$hk$-c04]#,##0.00', result: '<span class="cell-format" style="color:red;">hk$127,006.54</span>' });
+
+            tester.add({ value: 125635984945, format: "\"￥\"#,##0.00;[Red]\"￥\"\\-#,##0.00", result: '￥125,635,984,945.00' }); //[Red]"盈余;"[$$-409]#,##0.00;\-[$$-409]#,##0.00
+            tester.add({ value: 1234.366, format: '0.00000000E+00', result: '1.23436600E+03' });
+            tester.add({ value: 0, format: '[Red]"盈余;"[$$-409]#,##0.00;\-[$$-409]#,##0.00', result: '<span class="cell-format" style="color:red;">盈余;$0.00</span>' });
+            tester.add({ value: 127006.54, format: "[$HK$-C04]#,##0.00;[Red][$HK$-C04]#,##0.00", result: 'HK$127,006.54' });
+            tester.add({ value: -127006.54, format: "[$HK$-C04]#,##0.00;[Red][$HK$-C04]#,##0.00", result: '<span class="cell-format" style="color:red;">HK$127,006.54</span>' });
+
+            tester.add({ value: 28, format: '[<=9999999]###\\-####;\\(###\\)\\ ###\\-####', result: '-28' });
+            tester.add({ value: 11365895, format: '00000-0000', result: '01136-5895' });
+            tester.add({ value: '1jhj', format: "0.00_);[Red]\\(0.00\\);0.00_ ;@_", result: '1jhj' });
+            tester.add({ value: 100852.685, format: '##0.0E+0', result: '100.9E+3' });
+
+            //字符串测试
+            var str1 = '时可以得到200多万条结果';
+            tester.add({ value: str1, format: '\$#,##0_);\(\$#,##0\)', result: str1 });
+            tester.add({ value: str1, format: '\$#,##0_);[Red]\(\$#,##0\)', result: str1 });
+            tester.add({ value: str1, format: '\$#,##0.00_);\(\$#,##0.00\)', result: str1 });
+            tester.add({ value: str1, format: '\$#,##0.00_);[Red]\(\$#,##0.00\)', result: str1 });
+            tester.add({ value: str1, format: '\$#,##0_);\(\$#,##0\)', result: str1 });
+
+            //09-04的测试
+            var num1 = -53246.3526, num2 = 18;
+            tester.add({ value: num1, format: '#,##0.00 [$€-408]_);[红色](#,##0.00 [$€-408])', result: '(53,246.35 €)' });
+            tester.add({ value: num1, format: '[$€-2] #,##0.00_);[红色]([$€-2] #,##0.00)', result: '(€ 53,246.35)' });
+            tester.add({ value: num1, format: 'yyyy/mm/dd hh:mm:ss', result: "1754/03/18 15:32:15" });
+            tester.add({ value: num2, format: '000000', result: "000018" });
+            tester.add({ value: num1, format: '000000', result: "-053246" });
+            tester.add({ value: num1, format: '0.E+00', result: '-5.E+04' });
+            tester.add({ value: num1, format: "@", result: num1.toString() });
+            tester.add({ value: num1, format: '_ @_)', result: " " + num1.toString() + " " });
+            tester.add({ value: num1, format: '[Red]_ @@@@@', result: '<span class="cell-format" style="color:red;"> ' + num1.toString() + '</span>' });
+
+            //09-17测试
+            var num3 = 36964.56314, date1 = numberToDate(num3), text1 = date1.format("yyyy/MM/dd HH:mm:ss 周W"), num4 = -num3;
+            tester.add({ text: text1, value: num3, format: 'yyyy"年"m"月"d"日";@', result: "2001年3月14日" });
+            tester.add({ text: text1, value: num3, format: '[$-F800]dddd, mmmm dd, yyyy', result: "2001年3月14日" });
+            tester.add({ text: text1, value: num3, format: '[DBNum1][$-804]yyyy"年"m"月"d"日";@', result: "二○○一年三月十四日" });
+            tester.add({ text: text1, value: num3, format: '[DBNum1][$-804]yyyy"年"m"月";@', result: "二○○一年三月" });
+            tester.add({ text: text1, value: num3, format: '[DBNum1][$-804]m"月"d"日";@', result: "三月十四日" });
+            tester.add({ text: text1, value: num3, format: '[$-804]aaaa;@', result: "星期三" });
+            tester.add({ text: text1, value: num3, format: '[$-804]aaa;@', result: "周三" });
+            tester.add({ text: text1, value: num3, format: '[DBNum1][$-804]h"时"mm"分";@', result: '十三时三十分' });
+            tester.add({ text: text1, value: num3, format: '[DBNum1][$-804]上午/下午h"时"mm"分";@', result: '下午一时三十分' });
+            tester.add({ value: num3, format: '[<50]"低";[>100]"高";"中等"', result: '高' });
+            tester.add({ value: num3, format: '0.00_ ', result: '36964.56 ' });
+
+            tester.add({ value: num3, format: '#,##0.00_ ', result: '36,964.56 ' });
+            tester.add({ value: num4, format: '#,##0.00_ ', result: '-36,964.56 ' });
+            tester.add({ value: num3, format: '0.00_ ', result: '36964.56 ' });
+            tester.add({ value: num4, format: '0.00_ ', result: '-36964.56 ' });
+
+            tester.add({ value: num3, format: '¥#,##0.00;¥-#,##0.00', result: '¥36,964.56' });
+            tester.add({ value: num4, format: '¥#,##0.00;¥-#,##0.00', result: '¥-36,964.56' });
+
+            //特殊格式中的台湾地区
+            var num5 = 154632.653, num6 = -num5;
+            tester.add({ value: num5, format: '000', result: '154633' });
+            tester.add({ value: num5, format: '0000000-0', result: '0015463-3' });
+            tester.add({ value: num5, format: '[<=9999999]###\\-####;\\(0#\\)\\ ###\\-####', result: '15-4633' });
+            tester.add({ value: num5, format: '[<=99999999]####\\-####;\\(0#\\)\\ ####\\-####', result: '15-4633' });
+            tester.add({ value: num5, format: '[>99999999]0000\\-000\\-000;000\\-000\\-000', result: '000-154-633' });
+            tester.add({ value: num5, format: '[DBNum1][$-404]General', result: '一十五萬四千六百三十二.六五三' });
+            tester.add({ value: num5, format: '[DBNum2][$-404]General', result: '壹拾伍萬肆仟陸佰參拾貳.陸伍參' });
+
+            tester.add({ value: num6, format: '000', result: '-154633' });
+            tester.add({ value: num6, format: '0000000-0', result: '-0015463-3' });
+            tester.add({ value: num6, format: '[<=9999999]###\\-####;\\(0#\\)\\ ###\\-####', result: '-15-4633' });
+            tester.add({ value: num6, format: '[<=99999999]####\\-####;\\(0#\\)\\ ####\\-####', result: '-15-4633' });
+            tester.add({ value: num6, format: '[>99999999]0000\\-000\\-000;000\\-000\\-000', result: '-000-154-633' });
+            tester.add({ value: num6, format: '[DBNum1][$-404]General', result: '-一十五萬四千六百三十二.六五三' });
+            tester.add({ value: num6, format: '[DBNum2][$-404]General', result: '-壹拾伍萬肆仟陸佰參拾貳.陸伍參' });
+            tester.add({ value: 423675.6438, format: '[$-404]aaa;@', result: '週六' });
+
+            //分数格式
+            var num7 = 8.21, num8 = 0.31456413, num9 = -17152.32556, num10 = 1227.49;
+            tester.add({ value: num7, format: '??"p"00 ?/81\\?', result: '  p08 17/81?' });
+            tester.add({ value: num7, format: '# ?/?', result: '8  1/5' });
+            tester.add({ value: num7, format: '# ??/??', result: '8  17/81' });         //客户端excel结果为:8 4/19不是最近似值
+            tester.add({ value: num7, format: '# ???/???', result: '8  21/100' });
+            tester.add({ value: num7, format: '# ?/2', result: '8    ' });
+            tester.add({ value: num7, format: '# ?/4', result: '8 1/4' });
+            tester.add({ value: num7, format: '# ?/8', result: '8 2/8' });
+            tester.add({ value: num7, format: '# ?/16', result: '8 3/16' });
+            tester.add({ value: num7, format: '# ?/10', result: '8 2/10' });
+            tester.add({ value: num7, format: '# ?/100', result: '8 21/100' });
+            tester.add({ value: num8, format: '# ?/?', result: '  1/3' });
+            tester.add({ value: num8, format: '# ??/??', result: '  28/89' });
+            tester.add({ value: num8, format: '# ???/???', result: '  162/515' });
+            tester.add({ value: num8, format: '# ?/2', result: ' 1/2' });
+            tester.add({ value: num8, format: '# ?/4', result: ' 1/4' });
+            tester.add({ value: num8, format: '# ?/8', result: ' 3/8' });
+            tester.add({ value: num8, format: '# ?/16', result: ' 5/16' });
+            tester.add({ value: num8, format: '# ?/10', result: ' 3/10' });
+            tester.add({ value: num8, format: '# ?/100', result: ' 31/100' });
+
+            tester.add({ value: num9, format: '# ??/??', result: '-17152  14/43' });
+            tester.add({ value: num10, format: '# ??/??', result: '1227  25/51' });
+            tester.add({ value: 1227, format: '# ??/??', result: '1227  ' });
+            tester.add({ value: 12278.32, format: '# ???/???', result: '12278  8/25' });
+
+            tester.add({ value: 0.008542, format: '#,##0.0000', result: '0.0085' });
+            tester.add({ value: 0.008542, format: '#,##0.00', result: '0.01' });
+            tester.add({ value: 1.99999, format: '#,##0.00', result: '2.00' });
+
+            tester.start();
+        }
+
+        test();
+    </script>
+</body>
+</html>

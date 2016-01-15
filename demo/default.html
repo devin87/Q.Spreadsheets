@@ -1,0 +1,23 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Q.Spreadsheets Demo</title>
+    <link rel="stylesheet" type="text/css" href="../css/Q.css" />
+    <link rel="stylesheet" type="text/css" href="../css/Q.Spreadsheets.css" />
+</head>
+
+<body>
+    <div class="view"></div>
+    
+    <script type="text/javascript" src="../Q.all.js"></script>
+    <script type="text/javascript" src="../src/lang/zh_CN.js"></script>
+    <script type="text/javascript" src="../Q.Spreadsheets.js"></script>
+
+    <script type="text/javascript">
+        window.ss = new Q.Spreadsheets({
+            view: $(".view")[0]
+        });
+    </script>
+</body>
+</html>

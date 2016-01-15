@@ -1,0 +1,69 @@
+html { *overflow: hidden; }
+
+/* ------------------ ui.grid ------------------ */
+.ss-view { position: relative; min-height: 200px; overflow: hidden; }
+
+.ss-sheet { position: relative; }
+.ss-grid { position: absolute; background-color: #fff; overflow: hidden; }
+
+.ssg-1 { z-index: 4; }
+.ssg-2 { z-index: 3; }
+.ssg-3 { z-index: 2; }
+
+.ss-vscroll { position: absolute; top: 0; right: 0; width: 17px; height: 100%; overflow-x: hidden; overflow-y: scroll; z-index: 10; }
+.ss-hscroll { width: 500px; overflow-x: scroll; overflow-y: hidden; }
+
+.ss-total-width { height: 1px; }
+.ss-total-height { width: 1px; }
+
+.ss-colStart, .ss-colHead, .ss-rowNum, .ss-cell { position: absolute; /*border-collapse: collapse; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc;*/ overflow: hidden; }
+.ss-colStart, .ss-colHead, .ss-rowNum { text-align: center; cursor: default; }
+.ss-colStart, .ss-rowNum { }
+.ss-colStart, .ss-colHead { font-size: 14px; height: 19px; line-height: 18px; background: #f6f6f6 url("../images/SS/colHead.gif") repeat-x scroll 0 0; font-size: 14px; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; }
+
+.ss-header { }
+.ss-colStart { }
+.ss-colHead { }
+
+.ss-val { display: table-cell; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; overflow: hidden; vertical-align: bottom; }
+
+.ss-row { }
+.ss-rowNum { font-size: 12px; line-height: 18px; background-color: #F4F4F4; }
+.ss-cell { cursor: cell; }
+.ss-td { display: table-cell; vertical-align: bottom; }
+
+/* ------------------ ui.footbar ------------------ */
+.ss-footbar { background-color: #D8E6FC; padding-bottom: 1px; position: absolute; left: 0; bottom: 0; width: 100%; height: 24px; z-index: 10; font-size: 12px; }
+.sst-table { width: 100%; height: 100%; border-style: solid; border-color: #d2d2d2; border-width: 0 1px 0 1px; }
+.sst-table td { height: 18px; }
+.sst-w1 { width: 30px; text-align: center; }
+.sst-w2 { vertical-align: top; }
+.sst-w3 { width: 10px; }
+.sst-w4 { width: 200px; }
+.sst-w5 { width: 13px; }
+
+.ss-ico, .sst-arrow-up, .sst-resize { background: url(../images/SS/icons1.gif) no-repeat; }
+.ss-insert { background-position: -224px 0; }
+.ss-del { background-position: -240px 0; }
+.ss-merge { background-position: -259px 0; }
+.ss-split { background-position: -278px 0; }
+.sst-arrow-up { width: 18px; height: 20px; background-position: -36px 0; cursor: pointer; margin: 0 auto; }
+.sst-arrow-up:hover { background-position: -54px 0; }
+
+.sst-resize { width: 6px; height: 18px; margin: auto; background-position: -217px 0; cursor: e-resize; }
+
+
+.sst-tabs { }
+
+.sst-item, .sst-insert { float: left; display: inline; background: url(../images/SS/tab_left.gif) no-repeat scroll left bottom; padding: 0 2px; height: 20px; margin-top: -1px; cursor: pointer; }
+.sst-name { background: url(../images/SS/tab_right.gif) no-repeat scroll right bottom; height: 20px; line-height: 18px; padding: 0 8px; white-space: nowrap; float: left; }
+.sst-on { background-image: url(../images/SS/tab_left_on.gif); }
+.sst-on .sst-name { background-image: url(../images/SS/tab_right_on.gif); font-weight: bold; }
+
+.sst-insert .sst-name { font: bold 16px Arial; padding-right: 10px; display: inline; }
+
+.sel-hidden-sheets { width: 100%; margin-top: 5px; }
+
+.checked-panel .x-item { cursor: pointer; }
+.ss-active { background: url(../images/SS/check.gif) 2px 5px no-repeat; }
+.ss-active .x-text { font-weight: bold; }
