@@ -16,7 +16,7 @@ module.exports = {
             },
             {
                 dir: "../Q.UI.js/src",
-                src: ["Q.UI.Box.js", "Q.UI.ContextMenu.js", "Q.UI.DropdownList.js", "Q.UI.DataPager.js", "Q.UI.ColorPicker.js"],
+                src: ["Q.UI.Box.js", "Q.UI.ColorPicker.js", "Q.UI.ContextMenu.js", "Q.UI.DropdownList.js"],
                 dest: "/lib/Q.UI.js"
             }
         ],

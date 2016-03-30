@@ -2,7 +2,7 @@
 /*
 * spreadsheets.js
 * author:devin87@qq.com
-* update: 2016/01/15 11:54
+* update: 2016/03/30 15:48
 */
 (function (window, undefined) {
     "use strict";
@@ -223,6 +223,13 @@
             }, { title: title });
 
             return self;
+        },
+
+        scrollToRow: function (row, isUpdateScrollbar) {
+            return self.ui.scrollToRow(row, isUpdateScrollbar);
+        },
+        scrollToCol: function (col, isUpdateScrollbar) {
+            return self.ui.scrollToCol(col, isUpdateScrollbar);
         }
     });
 

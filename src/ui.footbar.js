@@ -2,7 +2,7 @@
 /*
 * ui.footbar.js 底部栏操作
 * author:devin87@qq.com
-* update: 2015/01/15 11:58
+* update: 2016/03/30 15:48
 */
 (function (window, undefined) {
     "use strict";
@@ -91,6 +91,11 @@
             self.elTabs = elTabs;
             self.elHScroll = elHScroll;
 
+            //水平滚动条宽度
+            self._HScrollWidth = elHScroll.offsetWidth;
+            self._HScrollHeight = elHScroll.offsetHeight;
+
+            //绘制Sheet标签
             self.drawTabs();
 
             //显示查看所有工作表菜单
@@ -104,6 +109,7 @@
 
             var tab_sheet_index;
 
+            //底部标签栏事件
             $(elTabs).on("click", ".sst-item", function () {
                 self.runApi("loadSheetAt", this.x);
             }).on("contextmenu", ".sst-item", function (e) {
@@ -152,6 +158,21 @@
             }).on("click", ".sst-insert", function () {
                 //新建工作表
                 self.runApi("addSheet");
+            });
+
+            //底部水平滚动条滚动事件
+            $(elHScroll).on("scroll", function (e) {
+                if (!self.loaded) return;
+
+                if (self.skipScrollEvent) {
+                    self.skipScrollEvent = false;
+                    return;
+                }
+
+                var left = this.scrollLeft,
+                    col = self.findCol(left);
+
+                self.scrollToColAsync(col, false);
             });
         },
         //创建“查看所有工作表”菜单,若菜单已存在,则先销毁再创建

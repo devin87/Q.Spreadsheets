@@ -1,11 +1,1176 @@
-﻿/// <reference path="core.js" />
+﻿/// <reference path="ui.js" />
 /*
-* ui.grid.js
-* author:devin87@qq.com
-* update: 2016/01/15 11:39
+* ui.grid.js 表格操作
+* update: 2016/03/30 15:48
 */
 (function (window, undefined) {
     "use strict";
 
+    var extend = Q.extend,
+        async = Q.async,
+        fire = Q.fire,
+
+        toMap = Q.toMap,
+
+        getFirst = Q.getFirst,
+        getNext = Q.getNext,
+        getLast = Q.getLast,
+        createEle = Q.createEle,
+
+        findInList = Q.findInList,
+
+        measureText = Q.getMeasureText(),
+        view = Q.view,
+
+        E = Q.event,
+        ContextMenu = Q.ContextMenu,
+
+        SS = Q.SS,
+        ERROR = SS.ERROR,
+        Lang = SS.Lang,
+        UI = SS.UI,
+
+        getColName = SS.getColName,
+
+        picker = UI.picker;
+
+    var DEF_COL_WIDTH = 80,
+        DEF_ROW_HEIGHT = 20,
+
+        DEF_ROW_NUM_WIDTH = 45,
+        DEF_COL_HEAD_HEIGHT = 20,
+
+        DEF_EL_ROW = createEle("div", "ss-row");
+
+    function log(msg) {
+        if (window.console) console.log.apply(console, arguments);
+        //Q.alert(msg);
+    }
+
+    //计算单元格偏移  eg:{ 1:67,  3:45 }
+    //indexs:  非默认宽高的行或列索引列表   => [1,3]
+    //offsets: 非默认宽高的宽高累加偏移列表 => [67,112]
+    //v: 默认的宽或高
+    //i: 行或列索引
+    function calcCellOffset(indexs, offsets, v, i) {
+        var index = findInList(indexs, i), len = indexs.length;
+        //-2表示小于列表第一项
+        if (index == -2 || i == indexs[0]) return i * v;
+        //-1表示大于列表最后一项
+        if (index == -1) return offsets[len - 1] + (i - len) * v;
+
+        if (i == indexs[index]) index--;
+        return offsets[index] + (i - index - 1) * v;
+    }
+
+    //根据偏移查找单元格行或列索引 eg:{ 1:67,  3:45 }
+    //offsets: 非默认宽高的宽高累加偏移列表 => [20,87,152]
+    //indexs:  非默认宽高的行或列索引列表   => [1,2,4]
+    //v: 默认的宽或高
+    //n: 偏移值
+    function findCellIndex(offsets, indexs, v, n) {
+        //非默认宽高的数量
+        var len = offsets.length - 1;
+        if (len == 0 || n < offsets[0]) return Math.floor(n / v);
+
+        var last = offsets[len];
+        if (n >= last) return indexs[len] + Math.floor((n - last) / v);
+
+        var i = findInList(offsets, n),
+            index = indexs[i],
+            next = indexs[i + 1],
+            fix = n - offsets[i];
+
+        if (fix == 0) return index;
+
+        index += Math.floor(fix / v);
+        return index < next ? index : next - 1;
+    }
+
+    UI.extend({
+        initGrid: function () {
+            var self = this,
+                workbook = self.workbook;
+
+            var html =
+                '<div class="ss-grid ssg-1"></div>' +
+                '<div class="ss-grid ssg-2"></div>' +
+                '<div class="ss-grid ssg-3"></div>' +
+                '<div class="ss-grid ssg-4">' +
+                    '<div class="ss-cells"></div>' +
+                '</div>' +
+                '<div class="ss-vscroll">' +
+                    '<div class="ss-total-height"></div>' +
+                '</div>';
+
+            var elSheet = $(".ss-sheet", self.elView).html(html)[0];
+
+            self.elSheet = elSheet;
+            self.elGrid1 = getFirst(elSheet);
+            self.elGrid2 = getNext(self.elGrid1);
+            self.elGrid3 = getNext(self.elGrid2);
+            self.elGrid4 = getNext(self.elGrid3);
+
+            self.elGridCells = getFirst(self.elGrid4);
+
+            self.elVScroll = getLast(elSheet);
+            self._VScrollWidth = self.elVScroll.offsetWidth || 17;
+
+            self.initGridSize().initGridEvent();
+        },
+
+        initGridSize: function () {
+            var self = this,
+
+                elView = self.elView,
+                elSheet = self.elSheet,
+                elFootbar = self.elFootbar,
+
+                height_other = elSheet.offsetTop - elView.offsetTop + (elFootbar ? elFootbar.offsetHeight : 0),
+
+                GRID_WIDTH = elView.clientWidth,
+                GRID_HEIGHT = elView.clientHeight - height_other;
+
+            self.GRID_WIDTH = GRID_WIDTH;
+            self.GRID_HEIGHT = GRID_HEIGHT;
+
+            return self;
+        },
+
+        initGridEvent: function () {
+            var self = this,
+
+                elSheet = self.elSheet,
+                elVScroll = self.elVScroll;
+
+            //鼠标中键滚轮事件
+            E.add(elSheet, "wheel", function (e) {
+                //e.delta: 向上滚动为1,向下滚动为-1
+                var scrollRow = self._scrollRow,
+                    row = scrollRow - 3 * e.delta;  //每次滚动3行
+
+                self.scrollToRowAsync(row, true);
+            });
+
+            //垂直滚动条滚动事件
+            E.add(elVScroll, "scroll", function (e) {
+                if (!self.loaded) return;
+
+                if (self.skipScrollEvent) {
+                    self.skipScrollEvent = false;
+                    return;
+                }
+
+                var top = this.scrollTop,
+                    row = self.findRow(top);
+
+                self.scrollToRowAsync(row, false);
+            });
+
+            return self;
+        },
+
+        resizeGrid: function () {
+            return this.initGridSize();
+        },
+
+        updateColsOffset: function () {
+            var self = this,
+                sheet = self.sheet,
+
+                map_col_width = sheet.colWidths || {},
+
+                list_col_width_index = [],
+                list_col_width_offset = [],
+
+                list_col_left = [],
+                list_col_left_index = [],
+
+                offset_width = 0,
+
+                list_col_offset = [DEF_ROW_NUM_WIDTH],
+                def_col_width = sheet.colWidth || DEF_COL_WIDTH,
+                i;
+
+            var d1 = Date.now();
+
+            Object.keys(map_col_width).sort(function (a, b) {
+                return a - b;
+            }).forEach(function (key, i) {
+                var col = +key;
+                list_col_width_index.push(col);
+
+                offset_width += map_col_width[key];
+                list_col_width_offset.push(offset_width);
+
+                if (i == 0) {
+                    list_col_left.push(col * def_col_width);
+                    list_col_left_index.push(col);
+                }
+                list_col_left.push(offset_width + (col - i) * def_col_width);
+                list_col_left_index.push(col + 1);
+            });
+
+            //预缓存数据
+            for (i = 1; i < 200; i++) {
+                list_col_offset[i] = (map_col_width[i - 1] || def_col_width) + list_col_offset[i - 1];
+            }
+
+            var d2 = Date.now();
+            log("updateColsOffset: " + (d2 - d1) + "ms");
+
+            self._colWidthIndexs = list_col_width_index;
+            self._colWidthOffsets = list_col_width_offset;
+            self._colOffsets = list_col_offset;
+
+            self._colLefts = list_col_left;
+            self._colLeftIndexs = list_col_left_index;
+
+            return self;
+        },
+        updateRowsOffset: function () {
+            var self = this,
+                sheet = self.sheet,
+
+                map_row_height = sheet.rowHeights || {},
+
+                list_row_height_index = [],
+                list_row_height_offset = [],
+
+                list_row_top = [],
+                list_row_top_index = [],
+
+                offset_height = 0,
+
+                list_row_offset = [DEF_COL_HEAD_HEIGHT],
+                def_row_height = sheet.rowHeight || DEF_ROW_HEIGHT,
+                i;
+
+            var d1 = Date.now();
+
+            Object.keys(map_row_height).sort(function (a, b) {
+                return a - b;
+            }).forEach(function (key, i) {
+                var row = +key;
+                list_row_height_index.push(row);
+
+                offset_height += map_row_height[key];
+                list_row_height_offset.push(offset_height);
+
+                if (i == 0) {
+                    list_row_top.push(row * def_row_height);
+                    list_row_top_index.push(row);
+                }
+                list_row_top.push(offset_height + (row - i) * def_row_height);
+                list_row_top_index.push(row + 1);
+            });
+
+            //预缓存数据
+            for (i = 1; i < 1000; i++) {
+                list_row_offset[i] = (map_row_height[i - 1] || def_row_height) + list_row_offset[i - 1];
+            }
+
+            var d2 = Date.now();
+            log("updateRowsOffset: " + (d2 - d1) + "ms");
+
+            self._rowHeightIndexs = list_row_height_index;
+            self._rowHeightOffsets = list_row_height_offset;
+            self._rowOffsets = list_row_offset;
+
+            self._rowTops = list_row_top;
+            self._rowTopIndexs = list_row_top_index;
+
+            return self;
+        },
+
+        getColLeft: function (col) {
+            var self = this,
+                value = self._colOffsets[col];
+
+            if (value == undefined) {
+                self._colOffsets[col] = value = calcCellOffset(self._colWidthIndexs, self._colWidthOffsets, self.sheet.colWidth || DEF_COL_WIDTH, col) + DEF_ROW_NUM_WIDTH;
+            }
+
+            return value;
+        },
+        getRowTop: function (row) {
+            var self = this,
+                value = self._rowOffsets[row];
+
+            if (value == undefined) {
+                self._rowOffsets[row] = value = calcCellOffset(self._rowHeightIndexs, self._rowHeightOffsets, self.sheet.rowHeight || DEF_ROW_HEIGHT, row) + DEF_COL_HEAD_HEIGHT;
+            }
+
+            return value;
+        },
+
+        getColWidth: function (col) {
+            return this.sheet.colWidths[col] || this._colWidth;
+        },
+
+        getColsWidth: function (firstCol, lastCol) {
+            return firstCol != lastCol ? this.getColLeft(lastCol + 1) - this.getColLeft(firstCol) : this.getColWidth(firstCol);
+        },
+
+        getRowHeight: function (row) {
+            return this.sheet.rowHeights[row] || this._rowHeight;
+        },
+
+        getRowsHeight: function (firstRow, lastRow) {
+            return firstRow != lastRow ? this.getRowTop(lastRow + 1) - this.getRowTop(firstRow) : this.getRowHeight(firstRow);
+        },
+
+        findRow: function (top) {
+            var self = this;
+
+            return findCellIndex(self._rowTops, self._rowTopIndexs, self.sheet.rowHeight || DEF_ROW_HEIGHT, top);
+        },
+
+        findCol: function (left) {
+            var self = this;
+
+            return findCellIndex(self._colLefts, self._colLeftIndexs, self.sheet.colWidth || DEF_COL_WIDTH, left);
+        },
+
+        setColWidth: function (col, width) {
+            var self = this,
+                sheet = self.sheet,
+                splitCol = self._splitCol;
+
+            sheet.colWidths[col] = width;
+
+            self.updateColsOffset();
+
+            if (col < splitCol) elGrid3.style.width = elGrid1.style.width = self.getColLeft(splitCol) + "px";
+
+
+        },
+
+        setRowHeight: function (row, height) {
+
+        },
+
+        getTotalWidth: function () {
+            return this.getColsWidth(0, this._maxCol + 1);
+        },
+
+        getTotalHeight: function () {
+            return this.getRowsHeight(0, this._maxRow + 1);
+        },
+
+        getHScrollWidth: function () {
+            var self = this;
+            return self._HScrollWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
+        },
+
+        getVScrollHeight: function () {
+            var self = this;
+            return self._VScrollHeight + self.getRowsHeight(self._splitRow, self._maxRow + 1) - self.SCROLL_HEIGHT;
+        },
+
+        updateHScrollWidth: function () {
+            var self = this,
+                elHScroll = self.elHScroll;
+
+            if (elHScroll) getFirst(elHScroll).style.width = self.getHScrollWidth() + "px";
+
+            return self;
+        },
+
+        updateVScrollHeight: function () {
+            var self = this,
+                elVScroll = self.elVScroll;
+
+            if (elVScroll) {
+                var total_height = self.getVScrollHeight();
+                getFirst(elVScroll).style.height = total_height + "px";
+
+                //修复IE8下垂直滚动条不显示的问题
+                if (Q.ie < 8) elVScroll.style.overflowY = total_height > self._VScrollHeight ? "auto" : "scroll";
+            }
+
+            return self;
+        },
+
+        updateGridSettings: function () {
+            var self = this,
+                sheet = self.sheet,
+
+                scrollRow = sheet.scrollRow,
+                scrollCol = sheet.scrollCol,
+
+                isFreeze = sheet.isFreeze;
+
+            self._colWidth = sheet.colWidth || DEF_COL_WIDTH;
+            self._rowHeight = sheet.rowHeight || DEF_ROW_HEIGHT;
+
+            self._splitRow = isFreeze ? sheet.freezeRow || 0 : 0;
+            self._splitCol = isFreeze ? sheet.freezeCol || 0 : 0;
+
+            self._pageRowsNum = Math.ceil(self.GRID_HEIGHT / self._rowHeight) + 10 - self._splitRow;
+            self._pageColsNum = Math.ceil(self.GRID_WIDTH / self._colWidth) + 5 - self._splitCol;
+
+            self._maxRowsNum = self._pageRowsNum * 2;
+            self._maxColsNum = self._pageColsNum * 2;
+
+            self._drawFirstRow = Math.max(self._splitRow, scrollRow ? scrollRow - 5 : 0);
+            self._drawFirstCol = Math.max(self._splitCol, scrollCol ? scrollCol - 2 : 0);
+            self._drawLastRow = self._drawFirstRow + self._pageRowsNum;
+            self._drawLastCol = self._drawFirstCol + self._pageColsNum;
+
+            self._maxRow = Math.max(sheet.maxRow, self._drawLastRow);
+            self._maxCol = Math.max(sheet.maxCol, self._drawLastCol);
+
+            self._fixLine = sheet.displayGridlines ? -1 : 0;
+
+            self._scrollRow = self._splitRow;
+            self._scrollCol = self._splitCol;
+
+            //test
+            //self._pageRowsNum = 60;
+            //self._pageColsNum = 32;
+
+            return self;
+        },
+
+        updateGridSize: function () {
+            var self = this,
+
+                GRID_WIDTH = self.GRID_WIDTH,
+                GRID_HEIGHT = self.GRID_HEIGHT,
+
+                elGrid1 = self.elGrid1,
+                elGrid2 = self.elGrid2,
+                elGrid3 = self.elGrid3,
+                elGrid4 = self.elGrid4,
+
+                elHScroll = self.elHScroll,
+                elVScroll = self.elVScroll,
+
+                elFootbar = self.elFootbar,
+                height_footbar = elFootbar ? elFootbar.offsetHeight : 0,
+
+                FIXED_WIDTH = self.getColLeft(self._splitCol),
+                FIXED_HEIGHT = self.getRowTop(self._splitRow);
+
+            self.FIXED_WIDTH = FIXED_WIDTH;
+            self.FIXED_HEIGHT = FIXED_HEIGHT;
+
+            self.SCROLL_WIDTH = GRID_WIDTH - FIXED_WIDTH;
+            self.SCROLL_HEIGHT = GRID_HEIGHT - FIXED_HEIGHT - height_footbar;
+
+            elGrid3.style.width = elGrid1.style.width = FIXED_WIDTH + "px";
+            elGrid4.style.width = elGrid2.style.width = GRID_WIDTH + "px";
+
+            elGrid2.style.height = elGrid1.style.height = FIXED_HEIGHT + "px";
+            elGrid4.style.height = elGrid3.style.height = (GRID_HEIGHT - height_footbar) + "px";
+
+            self.updateHScrollWidth();
+
+            if (elVScroll) {
+                var scrollbar_height = GRID_HEIGHT - height_footbar;
+                self._VScrollHeight = scrollbar_height;
+
+                elVScroll.style.height = scrollbar_height + "px";
+                self.updateVScrollHeight();
+            }
+
+            return self;
+        },
+
+        getElRowNum: function (row) {
+            return this.elRowNums[row];
+        },
+        getElRowCells: function (row) {
+            return this.elCells[row];
+        },
+
+        getElSSRowLeft: function (row) {
+            var elRowNum = this.getElRowNum(row);
+            if (elRowNum) return elRowNum.parentNode;
+        },
+        getElSSRowRight: function (row) {
+            var elRowCells = this.getElRowCells(row);
+            if (elRowCells) {
+                var elCell = elRowCells[elRowCells.length - 1];
+                if (elCell) return elCell.parentNode;
+            }
+        },
+
+        drawRows: function (firstRow, lastRow) {
+            var self = this,
+                sheet = self.sheet,
+
+                firstCol = self._drawFirstCol,
+                lastCol = self._drawLastCol + 1,
+
+                splitRow = self._splitRow,
+                splitCol = self._splitCol,
+
+                i,
+                j;
+
+            //预处理行高、列宽、偏移等数据
+            var pco = self.processCssOffset(firstRow, lastRow, firstCol, lastCol, 0, splitCol),
+                list_css_left = pco.cssLeft,
+                list_css_top = pco.cssTop,
+                list_css_width = pco.cssWidth,
+                list_css_height = pco.cssHeight,
+                list_css_inner_width = pco.cssInnerWidth,
+                list_css_inner_height = pco.cssInnerHeight,
+
+                css_rowNum_width = pco.cssRowNumWidth,
+                css_rowNum_inner_width = pco.cssRowNumInnerWidth;
+
+            //画单元格（包括行号）
+            var draw_cells = function (firstRow, lastRow, firstCol, lastCol, hasRowNum) {
+                var tmp = [];
+                for (i = firstRow; i < lastRow; i++) {
+                    tmp.push('<div class="ss-row" style="' + list_css_top[i] + list_css_height[i] + '">');
+                    if (hasRowNum) {
+                        tmp.push('<div class="ss-rowNum" style="left:0px;' + css_rowNum_width + '">');
+                        tmp.push('<div class="ss-val" style="' + css_rowNum_inner_width + list_css_inner_height[i] + '">');
+                        tmp.push(i + 1);
+                        tmp.push('</div>');
+                        tmp.push('</div>');
+                    }
+                    for (j = firstCol; j < lastCol; j++) {
+                        tmp.push('<div class="ss-cell" style="' + list_css_left[j] + list_css_width[j] + '">');
+                        tmp.push('<div class="ss-val" style="' + list_css_inner_width[j] + list_css_inner_height[i] + '"></div>');
+                        tmp.push('</div>');
+                    }
+                    tmp.push('</div>');
+                }
+
+                return tmp.join('');
+            };
+
+            var boxLeft = document.createElement("div"),
+                boxRight = document.createElement("div"),
+
+                elFragLeft = document.createDocumentFragment(),
+                elFragRight = document.createDocumentFragment(),
+
+                node;
+
+            boxLeft.innerHTML = draw_cells(firstRow, lastRow, 0, splitCol, true);
+            boxRight.innerHTML = draw_cells(firstRow, lastRow, firstCol, lastCol, false);
+
+            while ((node = boxLeft.firstChild)) {
+                elFragLeft.appendChild(node);
+            }
+
+            while ((node = boxRight.firstChild)) {
+                elFragRight.appendChild(node);
+            }
+
+            var elGridLeft = self.elGrid3,
+                elGridRight = self.elGridCells;
+
+            if (firstRow > self._drawLastRow) {
+                elGridLeft.appendChild(elFragLeft);
+                elGridRight.appendChild(elFragRight);
+            } else {
+                elGridLeft.insertBefore(elFragLeft, elGridLeft.firstChild);
+                elGridRight.insertBefore(elFragRight, elGridRight.firstChild);
+            }
+
+            return self;
+        },
+
+        drawCols: function (firstCol, lastCol) {
+            var self = this,
+                sheet = self.sheet,
+
+                firstRow = self._drawFirstRow,
+                lastRow = self._drawLastRow + 1,
+
+                drawFirstCol = self._drawFirstCol,
+                drawLastCol = self._drawLastCol,
+
+                splitRow = self._splitRow,
+                splitCol = self._splitCol,
+
+                elColHeads = self.elColHeads,
+                elCells = self.elCells,
+
+                i,
+                j;
+
+            //预处理行高、列宽、偏移等数据
+            var pco = self.processCssOffset(firstRow, lastRow, firstCol, lastCol, splitRow, 0),
+                list_css_left = pco.cssLeft,
+                list_css_top = pco.cssTop,
+                list_css_width = pco.cssWidth,
+                list_css_height = pco.cssHeight,
+                list_css_inner_width = pco.cssInnerWidth,
+                list_css_inner_height = pco.cssInnerHeight;
+
+            var append_node = function (els, elFrag) {
+                var nextNode;
+
+                if (firstCol > drawLastCol) {
+                    nextNode = els[drawLastCol];
+                    if (nextNode) nextNode.parentNode.appendChild(elFrag);
+                } else {
+                    nextNode = els[drawFirstCol];
+                    if (nextNode) nextNode.parentNode.insertBefore(elFrag, nextNode);
+                }
+            };
+
+            var append_cols = function (row) {
+                var elFragCells = document.createDocumentFragment(), nextNode;
+
+                for (j = firstCol; j < lastCol; j++) {
+                    var el = createEle("div", "ss-cell", '<div class="ss-val" style="' + list_css_inner_width[j] + list_css_inner_height[i] + '"></div>');
+                    el.style.cssText = list_css_left[j] + list_css_width[j];
+                    elFragCells.appendChild(el);
+                }
+
+                append_node(elCells[row], elFragCells);
+            };
+
+            //添加表头
+            var elFragColHead = document.createDocumentFragment();
+
+            for (j = firstCol; j < lastCol; j++) {
+                var el = createEle("div", "ss-colHead", getColName(j));
+                el.style.cssText = list_css_left[j] + list_css_inner_width[j];
+                elFragColHead.appendChild(el);
+            }
+
+            append_node(elColHeads, elFragColHead);
+
+            for (i = 0; i < splitRow; i++) {
+                append_cols(i);
+            }
+
+            for (i = firstRow; i < lastRow; i++) {
+                append_cols(i);
+            }
+
+            return self;
+        },
+
+        updateElCache: function () {
+            var self = this,
+
+                elSheet = self.elSheet,
+
+                split_row = self._splitRow,
+                split_col = self._splitCol,
+
+                draw_first_row = self._drawFirstRow,
+                draw_first_col = self._drawFirstCol,
+
+                elRowNums = [],
+                elColHeads = [],
+                elCells = [],
+
+                nodes1 = self.elGrid1.childNodes,
+                nodes2 = self.elGrid2.childNodes,
+                nodes3 = self.elGrid3.childNodes,
+                nodes4 = self.elGridCells.childNodes,
+
+                nodes_head1 = nodes1[0].childNodes,
+                nodes_head2 = nodes2[0].childNodes,
+
+                len_rows1 = nodes1.length,
+                len_rows2 = nodes3.length,
+
+                len_cols1 = nodes_head1.length,
+                len_cols2 = nodes_head2.length,
+
+                i;
+
+            for (i = 1; i < len_cols1; i++) {
+                elColHeads[i - 1] = nodes_head1[i];
+            }
+
+            for (i = 0; i < len_cols2; i++) {
+                elColHeads[draw_first_col + i] = nodes_head2[i];
+            }
+
+            var walk_row = function (row1, row2, i) {
+                var nodes1 = row1.childNodes,
+                    nodes2 = row2.childNodes,
+                    len1 = nodes1.length,
+                    len2 = nodes2.length,
+                    list_cell = [],
+                    j;
+
+                for (j = 0; j < len1; j++) {
+                    if (j == 0) elRowNums[i] = nodes1[j];
+                    else list_cell[j - 1] = nodes1[j];
+                }
+
+                for (j = 0; j < len2; j++) {
+                    list_cell[draw_first_col + j] = nodes2[j];
+                }
+
+                elCells[i] = list_cell;
+            };
+
+            for (i = 1; i < len_rows1; i++) {
+                walk_row(nodes1[i], nodes2[i], i - 1);
+            }
+
+            for (i = 0; i < len_rows2; i++) {
+                walk_row(nodes3[i], nodes4[i], draw_first_row + i);
+            }
+
+            self.elColStart = nodes_head1[0];
+            self.elColHeads = elColHeads;
+            self.elRowNums = elRowNums;
+            self.elCells = elCells;
+
+            return self;
+        },
+
+        setRowNum: function (row) {
+            var el = this.getElRowNum(row), node;
+            if (el) {
+                node = el.firstChild;
+                if (node) node.innerHTML = row + 1;
+            }
+
+            return this;
+        },
+
+        //更新行号
+        updateRowNum: function (firstRow, lastRow) {
+            var self = this,
+                splitRow = self._splitRow,
+                drawFirstRow = self._drawFirstRow,
+                drawLastRow = self._drawLastRow,
+
+                elRowNums = self.elRowNums,
+                elCells = self.elCells,
+                i;
+
+            if (firstRow < splitRow) {
+                for (i = firstRow; i < splitRow; i++) {
+                    self.setRowNum(i);
+                }
+            }
+
+            if (firstRow < drawFirstRow) firstRow = drawFirstRow;
+            if (lastRow == -1 || lastRow > drawLastRow) lastRow = drawLastRow;
+
+            for (i = firstRow; i <= lastRow; i++) {
+                self.setRowNum(i);
+            }
+
+            return self;
+        },
+
+        //更新列名
+        updateColHead: function (firstCol, lastCol) {
+
+        },
+
+        fillCells: function (firstRow, firstCol, lastRow, lastCol) {
+            var self = this,
+                sheet = self.sheet;
+
+            return self;
+        },
+
+        scrollToRow: function (relRow, isUpdateScrollbar) {
+            if (relRow < 0) relRow = 0;
+
+            var self = this,
+
+                scrollRow = self._scrollRow,
+
+                drawFirstRow = self._drawFirstRow,
+                drawLastRow = self._drawLastRow,
+                splitRow = self._splitRow,
+
+                row = relRow + splitRow,
+
+                maxRow = self._maxRow,
+                pageRowsNum = self._pageRowsNum,
+
+                updated = false;
+
+            var top = self.getRowTop(row) - self.getRowTop(splitRow),
+
+                firstRow,
+                lastRow;
+
+            var doScrollRow = function (redraw, isup) {
+                if (redraw) {
+                    //必须在drawCells之前更新
+                    self._drawFirstRow = firstRow;
+                    self._drawLastRow = lastRow - 1;
+
+                    self.drawCells();
+                } else {
+                    self.drawRows(firstRow, lastRow);
+
+                    //必须在drawRows之后更新
+                    if (isup) self._drawFirstRow = firstRow;
+                    else self._drawLastRow = lastRow - 1;
+                }
+            };
+
+            //向上滚动
+            if (relRow < scrollRow) {
+                if (row < drawFirstRow) {
+                    firstRow = Math.max(splitRow, row);
+                    lastRow = Math.min(firstRow + pageRowsNum, drawFirstRow);
+
+                    doScrollRow(lastRow < drawFirstRow, true);
+
+                    updated = true;
+                }
+            } else if (relRow > scrollRow) {
+                //向下滚动
+
+                var isOutOfHeight = self.getRowsHeight(row, maxRow) < self.SCROLL_HEIGHT;
+
+                if (row > drawLastRow || isOutOfHeight) {
+                    if (row > drawLastRow) {
+                        firstRow = Math.max(row - pageRowsNum, drawLastRow + 1);
+                        lastRow = row + 1;
+
+                    } else {
+                        firstRow = drawLastRow + 1;
+                        lastRow = firstRow + relRow - scrollRow;
+                    }
+
+                    doScrollRow(firstRow > drawLastRow + 1 && !isOutOfHeight, false);
+
+                    //更新垂直滚动条高度
+                    if (lastRow - 1 > maxRow) {
+                        self._maxRow = lastRow - 1;
+                        self.updateVScrollHeight();
+                    }
+
+                    updated = true;
+                }
+            }
+
+            if (updated) self.updateElCache();
+
+            self.elGrid4.scrollTop = self.elGrid3.scrollTop = top;
+
+            if (isUpdateScrollbar) {
+                self.skipScrollEvent = true;
+                self.elVScroll.scrollTop = top;
+            }
+
+            self.sheet.scrollRow = self._scrollRow = relRow;
+
+            return self;
+        },
+        scrollToCol: function (relCol, isUpdateScrollbar) {
+            if (relCol < 0) relCol = 0;
+
+            var self = this,
+
+                scrollCol = self._scrollCol,
+
+                drawFirstCol = self._drawFirstCol,
+                drawLastCol = self._drawLastCol,
+                splitCol = self._splitCol,
+
+                col = relCol + splitCol,
+
+                maxCol = self._maxCol,
+                pageColsNum = self._pageColsNum,
+
+                updated = false;
+
+            var left = self.getColLeft(col) - self.getColLeft(splitCol),
+
+                firstCol,
+                lastCol;
+
+            var doScrollCol = function (redraw, isleft) {
+                if (redraw) {
+                    //必须在drawCells之前更新
+                    self._drawFirstCol = firstCol;
+                    self._drawLastCol = lastCol - 1;
+
+                    self.drawCells();
+                } else {
+                    self.drawCols(firstCol, lastCol);
+
+                    //必须在drawCols之后更新
+                    if (isleft) self._drawFirstCol = firstCol;
+                    else self._drawLastCol = lastCol - 1;
+                }
+            };
+
+            //向左滚动
+            if (relCol < scrollCol) {
+                if (col < drawFirstCol) {
+                    firstCol = Math.max(splitCol, col);
+                    lastCol = Math.min(firstCol + pageColsNum, drawFirstCol);
+
+                    doScrollCol(lastCol < drawFirstCol, true);
+
+                    updated = true;
+                }
+            } else if (relCol > scrollCol) {
+                //向右滚动
+
+                var isOutOfWidth = self.getColsWidth(col, maxCol) < self.SCROLL_WIDTH;
+
+                if (col > drawLastCol || isOutOfWidth) {
+                    if (col > drawLastCol) {
+                        firstCol = Math.max(col - pageColsNum, drawLastCol + 1);
+                        lastCol = col + 1;
+
+                    } else {
+                        firstCol = drawLastCol + 1;
+                        lastCol = firstCol + relCol - scrollCol;
+                    }
+
+                    doScrollCol(firstCol > drawLastCol + 1 && !isOutOfWidth, false);
+
+                    //更新水平滚动条宽度
+                    if (lastCol - 1 > maxCol) {
+                        self._maxCol = lastCol - 1;
+                        self.updateHScrollWidth();
+                    }
+
+                    updated = true;
+                }
+            }
+
+            if (updated) self.updateElCache();
+
+            self.elGrid4.scrollLeft = self.elGrid2.scrollLeft = left;
+
+            if (isUpdateScrollbar) {
+                self.skipScrollEvent = true;
+                self.elHScroll.scrollLeft = left;
+            }
+
+            self.sheet.scrollCol = self._scrollCol = relCol;
+
+            return self;
+        },
+
+        scrollToRowAsync: function (row, isUpdateScrollbar, callback) {
+            var self = this;
+
+            async(function () {
+                self.scrollToRow(row, isUpdateScrollbar);
+                fire(callback, self);
+            }, 0);
+
+            return self;
+        },
+        scrollToColAsync: function (col, isUpdateScrollbar, callback) {
+            var self = this;
+
+            async(function () {
+                self.scrollToCol(col, isUpdateScrollbar);
+                fire(callback, self);
+            }, 0);
+
+            return self;
+        },
+
+        //预处理行高、列宽、偏移
+        processCssOffset: function (firstRow, lastRow, firstCol, lastCol, splitRow, splitCol) {
+            var self = this,
+
+                fixLine = self._fixLine,
+
+                list_css_left = [],
+                list_css_top = [],
+                list_css_width = [],
+                list_css_height = [],
+                list_css_inner_width = [],
+                list_css_inner_height = [],
+
+                i,
+                j;
+
+            //预处理列宽、偏移
+            var process_col_offset = function (firstCol, lastCol) {
+                for (j = firstCol; j < lastCol; j++) {
+                    var width = self.getColWidth(j);
+                    list_css_left[j] = "left:" + self.getColLeft(j) + "px;";
+                    list_css_width[j] = "width:" + width + "px;";
+                    list_css_inner_width[j] = "width:" + (width + fixLine) + "px;";
+                }
+            };
+
+            //预处理行高、偏移
+            var process_row_offset = function (firstRow, lastRow) {
+                for (i = firstRow; i < lastRow; i++) {
+                    var height = self.getRowHeight(i);
+                    list_css_top[i] = "top:" + self.getRowTop(i) + "px;";
+                    list_css_height[i] = "height:" + height + "px;";
+                    list_css_inner_height[i] = "height:" + (height + fixLine) + "px;";
+                }
+            };
+
+            if (splitCol) process_col_offset(0, splitCol);
+            process_col_offset(firstCol, lastCol);
+
+            if (splitRow) process_row_offset(0, splitRow);
+            process_row_offset(firstRow, lastRow);
+
+            return {
+                cssLeft: list_css_left,
+                cssWidth: list_css_width,
+                cssInnerWidth: list_css_inner_width,
+
+                cssTop: list_css_top,
+                cssHeight: list_css_height,
+                cssInnerHeight: list_css_inner_height,
+
+                cssRowNumWidth: "width:" + DEF_ROW_NUM_WIDTH + "px;",
+                cssRowNumInnerWidth: "width:" + (DEF_ROW_NUM_WIDTH + fixLine) + "px;"
+            };
+        },
+
+        drawCells: function () {
+            var self = this,
+                sheet = self.sheet,
+
+                tmp1 = [],
+                tmp2 = [],
+                tmp3 = [],
+                tmp4 = [],
+
+                fix_line = sheet.displayGridlines ? -1 : 0,
+
+                draw_first_row = self._drawFirstRow,
+                draw_first_col = self._drawFirstCol,
+                draw_last_row = self._drawLastRow,
+                draw_last_col = self._drawLastCol,
+
+                split_row = self._splitRow,
+                split_col = self._splitCol,
+
+                i,
+                j;
+
+            var d1 = Date.now();
+
+            //预处理行高、列宽、偏移等数据
+            var pco = self.processCssOffset(draw_first_row, draw_last_row + 1, draw_first_col, draw_last_col + 1, split_row, split_col),
+                list_css_left = pco.cssLeft,
+                list_css_top = pco.cssTop,
+                list_css_width = pco.cssWidth,
+                list_css_height = pco.cssHeight,
+                list_css_inner_width = pco.cssInnerWidth,
+                list_css_inner_height = pco.cssInnerHeight,
+
+                css_rowNum_width = pco.cssRowNumWidth,
+                css_rowNum_inner_width = pco.cssRowNumInnerWidth;
+
+            //画表头
+            var draw_head = function (tmp, firstCol, lastCol, hasColStart) {
+                tmp.push('<div class="ss-header">');
+                if (hasColStart) tmp.push('<div class="ss-colStart" style="' + css_rowNum_inner_width + '"></div>');
+                for (j = firstCol; j < lastCol; j++) {
+                    tmp.push('<div class="ss-colHead" style="' + list_css_left[j] + list_css_inner_width[j] + '">' + getColName(j) + '</div>');
+                }
+                tmp.push('</div>');
+            };
+
+            //画单元格（包括行号）
+            var draw_cells = function (tmp, firstRow, lastRow, firstCol, lastCol, hasRowNum) {
+                for (i = firstRow; i < lastRow; i++) {
+                    tmp.push('<div class="ss-row" style="' + list_css_top[i] + list_css_height[i] + '">');
+                    if (hasRowNum) {
+                        tmp.push('<div class="ss-rowNum" style="left:0px;' + css_rowNum_width + '">');
+                        tmp.push('<div class="ss-val" style="' + css_rowNum_inner_width + list_css_inner_height[i] + '">');
+                        tmp.push(i + 1);
+                        tmp.push('</div>');
+                        tmp.push('</div>');
+                    }
+                    for (j = firstCol; j < lastCol; j++) {
+                        tmp.push('<div class="ss-cell" style="' + list_css_left[j] + list_css_width[j] + '">');
+                        tmp.push('<div class="ss-val" style="' + list_css_inner_width[j] + list_css_inner_height[i] + '"></div>');
+                        tmp.push('</div>');
+                    }
+                    tmp.push('</div>');
+                }
+            };
+
+            //----------------- Grid1 -----------------
+            draw_head(tmp1, 0, split_col, true);
+            draw_cells(tmp1, 0, split_row, 0, split_col, true);
+
+            //----------------- Grid2 -----------------
+            draw_head(tmp2, draw_first_col, draw_last_col + 1, false);
+            draw_cells(tmp2, 0, split_row, draw_first_col, draw_last_col + 1, false);
+
+            //----------------- Grid3 -----------------
+            draw_cells(tmp3, draw_first_row, draw_last_row + 1, 0, split_col, true);
+
+            //----------------- Grid4 -----------------
+            draw_cells(tmp4, draw_first_row, draw_last_row + 1, draw_first_col, draw_last_col + 1, false);
+
+            var d2 = Date.now();
+
+            self.elGrid1.innerHTML = tmp1.join('');
+            self.elGrid2.innerHTML = tmp2.join('');
+            self.elGrid3.innerHTML = tmp3.join('');
+            self.elGridCells.innerHTML = tmp4.join('');
+
+            var d3 = Date.now();
+            log("drawCells: build html " + (d2 - d1) + "ms , render " + (d3 - d2) + "ms");
+
+            return self.fillCells(draw_first_row, draw_first_col, draw_last_row, draw_last_col);
+        },
+
+        drawSheet: function () {
+            var self = this,
+                sheet = self.sheet;
+
+            extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 50, scrollCol: 30, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 } }, true);
+
+            //self.elRowNums = [];
+            //self.elColHeads = [];
+            //self.elCells = [];
+
+            self.updateGridSettings().updateColsOffset().updateRowsOffset().updateGridSize();
+
+            //var d1 = Date.now();
+            //self.drawCells();
+            //var d2 = Date.now();
+            //Q.alert(d2 - d1);
+
+            async(function () {
+                var d1 = Date.now();
+                self.drawCells().updateElCache();
+                var d2 = Date.now();
+
+                document.title = "draw:" + (d2 - d1) + "ms";
+
+                //避免浏览器缓存
+                var elVScroll = self.elVScroll,
+                    elHScroll = self.elHScroll;
+
+                if (elVScroll) elVScroll.scrollTop = 1;
+                if (elHScroll) elHScroll.scrollTop = 1;
+
+                self.loaded = true;
+
+                //滚动到指定行和列
+                if (sheet.scrollRow) self.scrollToRow(sheet.scrollRow, true);
+                if (sheet.scrollCol) self.scrollToCol(sheet.scrollCol, true);
+            });
+
+            return self;
+        },
+
+        fillSheet: function (sheet) {
+
+        }
+    });
+
+    UI.register("initGrid");
 
 })(window);

@@ -2,7 +2,7 @@
 * Q.js (包括 通用方法、原生对象扩展 等) for browser or Node.js
 * https://github.com/devin87/Q.js
 * author:devin87@qq.com  
-* update:2016/01/14 10:35
+* update:2016/02/17 17:39
 */
 (function (undefined) {
     "use strict";
@@ -105,7 +105,7 @@
 
     //检测是否为大于0的数字
     function isUNum(n) {
-        return n !== 0 && isNum(n, 0);
+        return typeof n == "number" && n > 0;
     }
 
     //检测是否为整数
@@ -318,18 +318,17 @@
     }
 
     //将对象数组转换为键值对
-    //keyProp:对象中作为键的属性
-    //valueProp:对象中作为值的属性,若为空,则值为对象本身;为true时同isBuildIndex
-    //isBuildIndex:是否给对象添加index属性,值为对象在数组中的索引
-    function toObjectMap(list, keyProp, valueProp, isBuildIndex) {
+    //propKey:对象中作为键的属性
+    //propValue:对象中作为值的属性,若为空,则值为对象本身;若为true,则给对象添加index属性,值为对象在数组中的索引
+    function toObjectMap(list, propKey, propValue) {
         if (!list) return;
 
-        if (valueProp === true) {
-            isBuildIndex = valueProp;
-            valueProp = undefined;
-        }
+        var map = {}, isBuildIndex = false;
 
-        var map = {};
+        if (propValue === true) {
+            isBuildIndex = propValue;
+            propValue = undefined;
+        }
 
         for (var i = 0, len = list.length; i < len; i++) {
             var obj = list[i];
@@ -337,7 +336,7 @@
 
             if (isBuildIndex) obj.index = i;
 
-            map[obj[keyProp]] = valueProp ? obj[valueProp] : obj;
+            map[obj[propKey]] = propValue ? obj[propValue] : obj;
         }
 
         return map;
@@ -612,19 +611,14 @@
         reverse: function () {
             return this.split("").reverse().join("");
         },
-        //转为html输出(html编码) eg:\n => <br/>
-        toHtml: function () {
+        //html编码 eg:\n => <br/>
+        htmlEncode: function () {
             return this.replace(/\x26/g, "&amp;").replace(/\x3c/g, "&lt;").replace(/\x3e/g, "&gt;").replace(/\r?\n|\r/g, "<br/>").replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;").replace(/\s/g, "&nbsp;");
         },
-        //转为text输出(html解码) eg:<br/> => \n
-        toText: function () {
+        //html解码 eg:<br/> => \n
+        htmlDecode: function () {
             return this.replace(/<br[^>]*>/ig, "\n").replace(/<script[^>]*>([^~]|~)+?<\/script>/gi, "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
         }
-    });
-
-    String.alias({
-        toHtml: "htmlEncode",
-        toText: "htmlDecode"
     });
 
     //----------------------------- Number extend -----------------------------
@@ -787,11 +781,10 @@
             return toMap(this, value, ignoreCase);
         },
         //将对象数组转换为键值对
-        //keyProp:对象中作为键的属性
-        //valueProp:对象中作为值的属性,若为空,则值为对象本身;为true时同isBuildIndex
-        //isBuildIndex:是否给对象添加index属性,值为对象在数组中的索引
-        toObjectMap: function (keyProp, valueProp, isBuildIndex) {
-            return toObjectMap(this, keyProp, valueProp, isBuildIndex);
+        //propKey:对象中作为键的属性
+        //propValue:对象中作为值的属性,若为空,则值为对象本身;若为true,则给对象添加index属性,值为对象在数组中的索引
+        toObjectMap: function (propKey, propValue) {
+            return toObjectMap(this, propKey, propValue);
         }
     });
 
@@ -832,14 +825,14 @@
             return !isNaN(this.valueOf());
         },
         //格式化日期显示 eg:(new Date()).format("yyyy-MM-dd hh:mm:ss");
-        format: function (format, lang) {
-            lang = lang || {};
+        format: function (format, ops) {
+            ops = ops || {};
 
-            if (!this.isValid()) return lang.invalid || "--";
+            if (!this.isValid()) return ops.invalid || "--";
 
-            var months = lang.months,
-                weeks = lang.weeks || WEEKS,
-                aps = lang.aps || APS,
+            var months = ops.months,
+                weeks = ops.weeks || WEEKS,
+                aps = ops.aps || APS,
 
                 len = DATE_REPLACEMENTS.length,
                 i = 0;
@@ -877,7 +870,7 @@
 
             return format;
         },
-        //通过将一个时间间隔与指定 date 的指定 part 相加，返回一个新的 Date 值
+        //按照part(y|M|d|h|m|s|ms)添加时间间隔
         add: function (part, n) {
             var date = this;
             switch (part) {
@@ -1206,7 +1199,7 @@
 ﻿/*
 * Q.Queue.js 队列
 * author:devin87@qq.com
-* update:2015/10/15 10:39
+* update:2016/03/03 17:54
 */
 (function (undefined) {
     "use strict";
@@ -1263,7 +1256,7 @@
 
         self.reset();
 
-        delay(self.addList, self, 0, [tasks]);
+        self.addList(tasks);
     }
 
     factory(Queue).extend({
@@ -1417,6 +1410,8 @@
             };
 
             if (injectCallback != undefined) {
+                if (!data) data = {};
+
                 //避免重复注入
                 var qcallback = data.__qcallback;
                 originalCallback = qcallback || data[injectCallback];
@@ -1557,7 +1552,7 @@
 ﻿/*
 * Q.core.js (包括 通用方法、JSON、Cookie、Storage 等) for browser
 * author:devin87@qq.com  
-* update:2015/09/30 15:40
+* update:2016/02/17 17:12
 */
 (function (undefined) {
     "use strict";
@@ -2177,9 +2172,6 @@
         quirk: is_quirk_mode,
 
         ready: ready,
-
-        encode: encode_url_param,
-        decode: decode_url_param,
 
         param: process_url_param,
         join: join_url,
@@ -4110,7 +4102,7 @@
 ﻿/*
 * Q.event.js 事件处理
 * author:devin87@qq.com  
-* update:2016/01/14 10:47
+* update:2016/02/22 13:12
 */
 (function (undefined) {
     "use strict";
@@ -4179,7 +4171,9 @@
         self.originalEvent = e;
 
         self.type = type;
-        self.currentTarget = self.target = target;
+        self.target = target;
+        //一般指向绑定的元素,建议直接在回调函数中使用this或element代替
+        //self.currentTarget = e.currentTarget;
         self.relatedTarget = relatedTarget;
 
         self.rightClick = rightClick;
@@ -4244,7 +4238,7 @@
 
     //添加DOM事件,未做任何封装
     function addEvent(ele, type, fn) {
-        if (SUPPORT_W3C_EVENT) ele.addEventListener(type, fn, false);
+        if (SUPPORT_W3C_EVENT) ele.addEventListener(type, fn, false);  //第3个参数表示是否使用捕获
         else ele.attachEvent("on" + type, fn);  //注意:fn的this并不指向ele
     }
 
@@ -4442,7 +4436,7 @@
 ﻿/*
 * Q.ajax.js Ajax & JSONP
 * author:devin87@qq.com  
-* update:2015/09/08 09:35
+* update:2016/02/18 16:10
 */
 (function (undefined) {
     "use strict";
@@ -4593,7 +4587,7 @@
             timer && clearTimeout(timer);
 
             script.onload = script.onerror = script.onreadystatechange = null;
-            //head.removeChild(script);
+            head.removeChild(script);
             if (script_for_error) head.removeChild(script_for_error);
         };
 
@@ -6174,7 +6168,7 @@
 * Q.UI.Box.js (包括遮罩层、拖动、弹出框)
 * https://github.com/devin87/Q.UI.js
 * author:devin87@qq.com
-* update:2016/01/12 16:02
+* update:2016/03/08 15:02
 */
 (function (undefined) {
     "use strict";
@@ -6197,9 +6191,6 @@
         getStyle = Q.getStyle,
         setStyle = Q.setStyle,
 
-        getOffset = Q.offset,
-        //setOffset = getOffset,
-
         getFirst = Q.getFirst,
         getNext = Q.getNext,
         //getLast = Q.getLast,
@@ -6213,7 +6204,6 @@
         cssShow = Q.show,
         cssHide = Q.hide,
         isHidden = Q.isHidden,
-        cssToggle = Q.toggle,
 
         addClass = Q.addClass,
 
@@ -6369,6 +6359,7 @@
 
                 autoIndex = ops.autoIndex !== false,
                 autoMask = ops.autoMask !== false,
+                autoCursor = ops.autoCursor !== false,
 
                 zIndex = ele.nodeType == 1 ? +getStyle(ele, "z-index") : 0,
 
@@ -6392,7 +6383,7 @@
 
             //初始化元素状态
             setCssIfNot(ele, "position", "absolute");
-            setCssIfNot(target, "cursor", "move");
+            if (autoCursor) setCssIfNot(target, "cursor", "move");
 
             //设置元素居中
             if (ops.center) {
@@ -6555,7 +6546,9 @@
 
                 target = ele,
 
-                startX, startY, _isX, _isY;
+                startLeft, startTop,
+
+                startX, startY, movedX, movedY, _isX, _isY;
 
             if (hasShadow) {
                 if (!ELE_DRAG_SHADOW) {
@@ -6571,13 +6564,16 @@
 
             //实现doDown接口
             base.doDown = function (e) {
-                startX = e.clientX - ele.offsetLeft;
-                startY = e.clientY - ele.offsetTop;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                var offset = hasShadow ? $(ele).offset() : $(ele).position();
+
+                startLeft = offset.left;
+                startTop = offset.top;
 
                 if (hasShadow) {
-                    var offset = getOffset(ele);
-
-                    Object.forEach({ left: offset.left, top: offset.top, width: ele.offsetWidth, height: ele.offsetHeight }, function (key, value) {
+                    Object.forEach({ left: startLeft, top: startTop, width: w, height: h }, function (key, value) {
                         target.style[key] = value + "px";
                     });
 
@@ -6590,15 +6586,20 @@
                 cssShow(target);
 
                 if (_isX) {
-                    var x = e.clientX - startX;
+                    movedX = e.clientX - startX;
+
+                    var x = startLeft + movedX;
                     if (range) {
                         if (x < range.x) x = range.x;
                         else if (range.w && x + w > range.x + range.w) x = range.x + range.w - w;
                     }
+
                     target.style.left = x + "px";
                 }
                 if (_isY) {
-                    var y = e.clientY - startY;
+                    movedY = e.clientY - startY;
+
+                    var y = startTop + movedY;
                     if (range) {
                         if (y < range.y) y = range.y;
                         else if (range.h && y + h > range.y + range.h) y = range.y + range.h - h;
@@ -6609,11 +6610,10 @@
 
             if (hasShadow) {
                 base.doUp = function () {
-                    if (isHidden(target)) return;
                     cssHide(target);
 
-                    ele.style.left = target.style.left;
-                    ele.style.top = target.style.top;
+                    ele.style.left = (ele.offsetLeft + movedX) + "px";
+                    ele.style.top = (ele.offsetTop + movedY) + "px";
                 };
             }
 
@@ -6678,25 +6678,15 @@
         },
 
         //绑定事件,同 Event.add,不过会缓存事件句柄,用于统一销毁
-        bind: function () {
-            this._es.push(E.add.apply(E, arguments));
-            return this;
+        bind: function (selector, types, fn, data) {
+            var self = this;
+            self._es.push(E.add(self.find(selector), types, self.getEventCallback(fn, data)));
+            return self;
         },
-        //将事件绑定到查找到的元素上,并非事件代理
-        on: function (pattern, types, fn, data) {
-            var self = this,
-                list = self.find(pattern);
-
-            if (isObject(types)) {
-                data = fn;
-
-                Object.forEach(types, function (type, fn) {
-                    self.bind(list, type, self.getEventCallback(fn, data));
-                });
-            } else {
-                self.bind(list, types, self.getEventCallback(fn, data));
-            }
-
+        //事件代理,将事件代理到box上执行
+        on: function (types, selector, fn, data) {
+            var self = this;
+            self._es.push(E.add(self.box, types, selector, self.getEventCallback(fn, data)));
             return self;
         },
         //显示
@@ -6722,8 +6712,7 @@
         },
         //自动切换显示或隐藏
         toggle: function () {
-            cssToggle(this.box);
-            return this;
+            return isHidden(this.box) ? this.show() : this.hide();
         },
         //移除
         remove: function () {
@@ -6767,7 +6756,7 @@
 
             self.callback = ops.callback;
 
-            var html = '' +
+            var html =
                 '<div class="x-head">' +
                     '<h2 class="x-title">' + (ops.title || '弹出框') + '</h2>' +
                     '<a class="x-close" title="点击关闭">X</a>' +
@@ -6819,7 +6808,7 @@
                 callback_close = self.getEventCallback(action_close);
 
             //点击关闭事件
-            self.on(".x-close", "click", action_close);
+            self.bind(".x-close", "click", action_close);
 
             //按ESC关闭事件
             if (ops.esc !== false) {
@@ -6898,13 +6887,28 @@
     function get_bottom_html(mode, style) {
         var buttonStyle = 'inline-block w-button w-' + (style || "dark"),
 
-            html = '' +
-            '<div class="x-bottom">' +
-                '<div class="' + buttonStyle + ' x-submit">确定</div>' +
-                (mode == 2 ? '<div class="' + buttonStyle + ' x-cancel">取消</div>' : '') +
-            '</div>';
+            html =
+                '<div class="x-bottom">' +
+                    '<div class="' + buttonStyle + ' x-submit">确定</div>' +
+                    (mode == 2 ? '<div class="' + buttonStyle + ' x-cancel">取消</div>' : '') +
+                '</div>';
 
         return html;
+    }
+
+    //获取弹出框配置对象
+    function get_dialog_ops(title, msg, fn, ops) {
+        if (typeof fn === "object") {
+            ops = fn;
+            fn = ops;
+        }
+
+        ops = extend({}, ops);
+        if (isFunc(fn)) ops.callback = fn;
+        if (!ops.title) ops.title = title;
+        ops.html = msg;
+
+        return ops;
     }
 
     var dialog = {
@@ -6913,46 +6917,34 @@
 
         //提示框
         alert: function (msg, fn, ops) {
-            var ops = ops || {};
-            if (isFunc(fn)) ops.callback = fn;
-            else if (typeof fn === "object") ops = fn;
-
-            if (!ops.title) ops.title = "提示信息";
+            ops = get_dialog_ops("提示信息", msg, fn, ops);
             //ops.icon = 'images/Q/alert.gif';
             ops.iconHtml = '<div class="ico x-alert"></div>';
-            ops.html = msg;
 
             return createDialogBox(ops);
         },
         //确认框
         confirm: function (msg, fn, ops) {
-            var ops = ops || {};
-            if (isFunc(fn)) ops.callback = fn;
-            else if (typeof fn === "object") ops = fn;
-
-            if (!ops.title) ops.title = "确认信息";
-            ops.html = msg;
+            ops = get_dialog_ops("确认信息", msg, fn, ops);
             if (!ops.bottom) ops.bottom = get_bottom_html(2);
             ops.mask = ops.mask !== false;
 
             var box = createDialogBox(ops);
-
-            box.on(".x-submit", "click", "remove", true).on(".x-cancel", "click", "remove", false);
-
-            return box;
+            return box.bind(".x-submit", "click", "remove", true).bind(".x-cancel", "click", "remove", false);
         },
         prompt: function (msg, fn, ops) {
-            var ops = ops || {};
-            if (typeof fn === "object") ops = fn;
+            ops = get_dialog_ops("输入信息", undefined, fn, ops);
 
-            if (!ops.title) ops.title = "输入信息";
-            ops.html = '<div class="x-text">' + msg + '</div><div class="x-input"><input type="' + (ops.pwd ? 'password' : 'text') + '" /></div>';
-            if (!ops.width) ops.width = 320;
+            var html =
+                '<div class="x-text">' + msg + '</div>' +
+                '<div class="x-input"><input type="' + (ops.pwd ? 'password' : 'text') + '" /></div>';
+
+            ops.html = html;
             if (!ops.bottom) ops.bottom = get_bottom_html(2);
 
-            var box = createDialogBox(ops);
+            var box = createDialogBox(ops),
+                input = box.get(".x-input>input");
 
-            var input = box.get(".x-input>input");
             input.focus();
             input.value = def(ops.value, "");
 
@@ -6963,26 +6955,25 @@
             };
 
             //输入框快捷提交
-            box.on(input, "keyup", function (e) {
+            box.bind(input, "keyup", function (e) {
                 if (e.keyCode == 13) submit();
                 else setInputDefault(this);
             });
 
             //确定与取消
-            box.on(".x-submit", "click", submit).on(".x-cancel", "click", "remove");
-
-            return box;
+            return box.bind(".x-submit", "click", submit).bind(".x-cancel", "click", "remove");
         },
 
         bottom: get_bottom_html,
 
         //显示加载框
         showLoading: function (ops) {
-            ops = ops || { html: "正在加载数据,请稍后…" };
-            //ops.icon = 'images/Q/loading.gif';
-            ops.iconHtml = '<div class="ico x-loading"></div>';
+            ops = extend({}, ops);
 
             if (!ops.title) ops.title = "加载数据";
+            if (!ops.html) ops.html = "正在加载数据,请稍后…";
+            //ops.icon = 'images/Q/loading.gif';
+            ops.iconHtml = '<div class="ico x-loading"></div>';
 
             return createDialogBox(ops);
         }
@@ -7004,6 +6995,326 @@
         Box: Box,
         WinBox: WinBox
     });
+
+})();
+
+﻿/*
+* Q.UI.ColorPicker.js 颜色选择器
+* https://github.com/devin87/Q.UI.js
+* author:devin87@qq.com
+* update:2015/12/08 14:39
+*/
+(function (undefined) {
+    "use strict";
+
+    var document = window.document,
+
+        isFunc = Q.isFunc,
+
+        extend = Q.extend,
+        //fire = Q.fire,
+
+        getFirst = Q.getFirst,
+        getNext = Q.getNext,
+        getLast = Q.getLast,
+
+        //getOffset = Q.offset,
+
+        createEle = Q.createEle,
+        factory = Q.factory,
+
+        E = Q.event;
+
+    var POS_VALUE_HIDDEN = -10000;
+
+    //设置元素位置
+    function set_pos(el, x, y) {
+        if (x != undefined) el.style.left = x + "px";
+        if (y != undefined) el.style.top = y + "px";
+    }
+
+    //---------------------- util ----------------------
+
+    var RE_RGB = /^rgb\((\d+),(\d+),(\d+)\)$/i,
+        RE_Hex = /^#?([0-9A-F]{3}|[0-9A-F]{6})$/i;
+
+    //int值转为16进制颜色
+    function int2hex(n) {
+        return "#" + ("00000" + n.toString(16)).slice(-6);   //faster
+
+        //var str = ("00000" + n.toString(16)).slice(-6);
+        //return "#" + str.slice(4) + str.slice(2, 4) + str.slice(0, 2);
+    }
+
+    //RGB颜色转为16进制颜色
+    function rgb2hex(r, g, b) {
+        return int2hex(r * 65536 + g * 256 + b);
+        //return int2hex(r + g * 256 + b * 65536);
+    }
+
+    //转为16进制颜色
+    function toHex(color) {
+        if (typeof color == "number") return int2hex(color);
+
+        color = color.replace(/\s+/g, "");
+        if (!RE_RGB.test(color)) return color;
+
+        return rgb2hex(+RegExp.$1, +RegExp.$2, +RegExp.$3);
+    }
+
+    //转为RGB颜色
+    function toRGB(color) {
+        if (typeof color == "number") color = int2hex(color);
+        if (!RE_Hex.test(color)) return color;
+
+        color = RegExp.$1;
+
+        if (color.length == 3) {
+            var a = color.charAt(0), b = color.charAt(1), c = color.charAt(2);
+            color = a + a + b + b + c + c;
+        }
+
+        return "rgb(" + parseInt(color.substr(0, 2), 16) + "," + parseInt(color.substr(2, 2), 16) + "," + parseInt(color.substr(4, 2), 16) + ")";
+    }
+
+    //---------------------- ColorPicker ----------------------
+
+    var LIST_COLOR = ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
+
+    //颜色选择器
+    function ColorPicker(ops) {
+        var self = this;
+
+        //默认行数与列数
+        self.row = 12;  //不得超过 LIST_COLOR.length
+        self.col = 21;
+
+        self.set(ops).init();
+    }
+
+    factory(ColorPicker).extend({
+        //初始化
+        init: function () {
+            var self = this;
+
+            var html =
+                '<div class="xp-title">' +
+                    '<div class="xp-preview"></div>' +
+                    '<div class="xp-val"></div>' +
+                    '<div class="xp-type">' +
+                        '<select>' +
+                            '<option value="Cube" selected="selected">立方色</option>' +
+                            '<option value="Series">连续色调</option>' +
+                            '<option value="Gray">灰度等级</option>' +
+                        '</select>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="xp-table">' +
+                    '<table>' +
+                        ('<tr>' + '<td></td>'.repeat(self.col) + '</tr>').repeat(self.row) +
+                    '</table>' +
+                '</div>';
+
+            var box = createEle("div", "x-picker", html),
+
+                boxTitle = getFirst(box),
+                boxPreview = getFirst(boxTitle),
+                boxValue = getNext(boxPreview),
+                boxType = getLast(boxTitle),
+
+                boxTable = getLast(box),
+                table = getFirst(boxTable);
+
+            Q.body.appendChild(box);
+
+            self.box = box;
+            self.table = table;
+            self.boxPreview = boxPreview;
+            self.boxValue = boxValue;
+
+            //------------------- init event -------------------
+
+            //类型切换
+            E.add(getFirst(boxType), "change", function () {
+                self["draw" + this.value + "Color"]();
+            });
+
+            E.add(table, {
+                //鼠标移动,预览颜色
+                mouseover: function (e) {
+                    self.setPreview(this.style.backgroundColor);
+                },
+
+                //选择并设置颜色
+                click: function (e) {
+                    var color = this.style.backgroundColor;
+                    self.fire(color).hide();
+                }
+            }, "td");
+
+            E.add(box, "click", E.stop);
+            E.add(document, "click", function (e) { self.hide(); });
+
+            return self.drawCubeColor().hide();
+        },
+        //设置 { isHex,callback }
+        //isHex:输出为16进制颜色
+        set: function (ops) {
+            extend(this, ops, true);
+
+            return this.setPreview((ops || {}).color);
+        },
+
+        //触发回调函数
+        fire: function (color) {
+            var self = this;
+            if (isFunc(self.callback)) self.callback.call(self, self.isHex ? toHex(color) : color);
+            return self;
+        },
+        //设置预览颜色
+        setPreview: function (color) {
+            var self = this;
+
+            if (color) {
+                self.boxPreview.style.backgroundColor = color;
+                self.boxValue.innerHTML = toHex(color).toUpperCase();
+            }
+
+            return self;
+        },
+
+        //填充单元格颜色
+        fillColor: function (i, j, color) {
+            this.table.rows[i].cells[j].style.backgroundColor = color;
+            return this;
+        },
+
+        //画左边的颜色
+        drawLeftColor: function () {
+            var self = this,
+                row = self.row;
+
+            for (var i = 0; i < row; i++) {
+                self.fillColor(i, 0, "#000").fillColor(i, 1, LIST_COLOR[i]).fillColor(i, 2, "#000");
+            }
+
+            return self;
+        },
+        //画立方色
+        drawCubeColor: function () {
+            var self = this,
+                row = self.row,
+                col = self.col,
+                start = 0,
+                step = 0x330000,
+                color;
+
+            self.drawLeftColor();
+
+            for (var i = 0; i < row; i++) {
+                if (i > 5) color = start = 0x990000 + (i - 6) * 0x000033;
+                else color = start = 0x0 + i * 0x000033;
+
+                for (var j = 3; j < col; j++) {
+                    self.fillColor(i, j, int2hex(color));
+                    color += 0x003300;
+                    if ((j - 2) % 6 == 0) start += step, color = start;
+                }
+            }
+
+            return self;
+        },
+        //画连续色
+        drawSeriesColor: function () {
+            var self = this,
+                row = self.row,
+                col = self.col,
+                start = 0xCCFFFF,
+                step = 0x660000,
+                flag = 1,
+                color;
+
+            self.drawLeftColor();
+
+            for (var i = 0; i < row; i++) {
+                if (i > 5) color = start = 0xFF00FF + (i - 6) * 0x003300;
+                else color = start = 0xCCFFFF - i * 0x003300;
+
+                flag = 1;
+
+                for (var j = 3; j < col; j++) {
+                    self.fillColor(i, j, int2hex(color));
+                    color -= 0x000033 * flag;
+                    if ((j - 2) % 6 == 0) {
+                        flag *= -1;
+                        start -= step;
+                        color = start - ((flag > 0) ? 0 : 0x0000FF);
+                    }
+                }
+            }
+
+            return self;
+        },
+        //画灰度等级色
+        drawGrayColor: function () {
+            var self = this,
+                row = self.row,
+                col = self.col,
+                color = 0xffffff;
+
+            for (var i = 0; i < row; i++) {
+                for (var j = 0; j < col; j++) {
+                    self.fillColor(i, j, int2hex(color));
+
+                    if (color <= 0) color = 0x000000;
+                    else color -= 0x010101;
+                }
+            }
+
+            return self;
+        },
+
+        //显示
+        show: function (x, y) {
+            var self = this;
+
+            if (x == undefined) x = self.x;
+            else self.x = x;
+
+            if (y == undefined) y = self.y;
+            else self.y = y;
+
+            set_pos(self.box, x, y);
+
+            return self;
+        },
+        //隐藏
+        hide: function () {
+            set_pos(this.box, POS_VALUE_HIDDEN, POS_VALUE_HIDDEN);
+            return this;
+        },
+
+        //是否为隐藏状态
+        isHidden: function () {
+            var self = this,
+                box = self.box,
+                x = parseFloat(box.style.left),
+                y = parseFloat(box.style.top);
+
+            return x <= -box.offsetWidth || y <= -box.offsetHeight;
+        },
+
+        //自动切换显示或隐藏
+        toggle: function (x, y) {
+            return this.isHidden() ? this.show(x, y) : this.hide();
+        }
+    });
+
+    //------------------------- export -------------------------
+
+    Q.toHex = toHex;
+    Q.toRGB = toRGB;
+    Q.ColorPicker = ColorPicker;
 
 })();
 
@@ -7487,7 +7798,7 @@
 * Q.UI.DropdownList.js 下拉列表
 * https://github.com/devin87/Q.UI.js
 * author:devin87@qq.com
-* update:2015/11/26 13:04
+* update:2016/03/09 13:09
 */
 (function (undefined) {
     "use strict";
@@ -7551,7 +7862,7 @@
                         '<div class="arrow arrow-down"></div>' +
                     '</div>' +
                 '</div>' : '') +
-                '<div class="x-panel x-sel-list"></div>';
+                '<div class="x-panel x-sel-list' + (isDropdownList ? '' : ' x-sel-multiple') + '"></div>';
 
             addClass(box, "x-sel");
 
@@ -7821,558 +8132,5 @@
     //------------------------- export -------------------------
 
     Q.DropdownList = DropdownList;
-
-})();
-
-﻿/*
-* Q.UI.DataPager.js 数据分页
-* https://github.com/devin87/Q.UI.js
-* author:devin87@qq.com
-* update:2015/10/16 10:26
-*/
-(function (undefined) {
-    "use strict";
-
-    var factory = Q.factory;
-
-    //---------------------- 数据分页 ----------------------
-
-    //生成分页页码数据 eg:create_pager_bar_data(9,28,5) => [1,0,4,5,6,7,8,0,28] 0表示省略号，其它表示页码
-    //size:要显示的页码数量(包括省略号),不小于7的奇数
-    //totalPage:总页数
-    //page:当前页索引
-    function create_pager_bar_data(size, totalPage, page) {
-        var tmp = [1];
-
-        //只有一页的情况
-        if (totalPage == 1) return tmp;
-
-        //if (size < 7) size = 7;
-        //else if (size % 2 == 0) size++;
-
-        var first = 2, last;
-
-        //总页数小于或等于页码数量
-        if (totalPage <= size) {
-            last = totalPage;
-        } else {
-            var sideCount = (size - 5) / 2;
-
-            //左边无省略号 eg: [1,2,3,4,5,0,20]
-            if (page <= sideCount + 3) {
-                last = size - 2;
-            } else if (page > totalPage - sideCount - 3) {
-                //右边无省略号 eg: [1,0,16,17,18,19,20]
-                first = totalPage - size + 3;  //=last-(size-4)
-                last = totalPage - 1;
-            } else {
-                //左右均有省略号 eg: [1,0,8,9,10,0,20]
-                first = page - ~~sideCount;
-                last = first + size - 5;
-            }
-        }
-
-        if (first > 2) tmp.push(0);
-        for (var i = first; i <= last; i++) tmp.push(i);
-
-        if (totalPage > size) {
-            if (last < totalPage - 1) tmp.push(0);
-            tmp.push(totalPage);
-        }
-
-        return tmp;
-    }
-
-    //构造器:分页对象
-    function DataPager(ops) {
-        var self = this;
-
-        self.ops = ops;
-        self.size = ops.size || 9;
-        self.cache = {};
-
-        if (ops.href == undefined) {
-            var boxNav = ops.boxNav;
-            if (boxNav) {
-                $(boxNav).on("click", "li", function () {
-                    self.go($(this).attr("x"), true);
-
-                    if (self.onclick) self.onclick.call(self, self.page);
-                });
-            }
-        } else {
-            ops.cache = ops.preload = false;
-        }
-
-        self.set(ops.totalCount, ops.pageSize || 10).setData(ops.data).go(ops.page);
-    }
-
-    factory(DataPager).extend({
-        //设置总的数据条数和每页显示的数据条数
-        set: function (totalCount, pageSize) {
-            var self = this;
-            if (totalCount != undefined) self.totalCount = totalCount;
-            if (pageSize != undefined) self.pageSize = pageSize;
-
-            if (self.totalCount != undefined) self.totalPage = Math.ceil(self.totalCount / self.pageSize);
-
-            return self;
-        },
-        //设置数据列表(为传入ops.load)
-        //data:数据列表
-        setData: function (data) {
-            if (data) {
-                this.data = data;
-                this.set(data.length);
-            }
-            return this;
-        },
-        //加载数据
-        _load: function (page, callback) {
-            var self = this,
-                ops = self.ops,
-                onload = self.onload;
-
-            self.page = page;
-
-            var complete = function (list) {
-                if (onload) onload.call(self, list);
-                if (callback) callback.call(self, list);
-
-                return self;
-            };
-
-            //本地数据分页
-            if (!ops.load) {
-                var pageSize = self.pageSize,
-                    start = (page - 1) * pageSize;
-
-                return complete(self.data.slice(start, start + pageSize));
-            }
-
-            //使用缓存
-            var list = ops.cache ? self.cache[page] : undefined;
-            if (list) return complete(list);
-
-            //获取远程数据
-            ops.load(page, function (data) {
-                list = data.data || [];
-                if (ops.cache) self.cache[page] = list;
-
-                self.set(data.totalCount, data.pageSize);
-
-                complete(list);
-            });
-
-            return self;
-        },
-        //加载并渲染数据
-        load: function (page) {
-            return this._load(page, this.draw);
-        },
-        //重新载入当前数据并渲染
-        reload: function (page) {
-            return this.load(page || this.page);
-        },
-        //跳转到指定页
-        //forced:是否强制跳转
-        go: function (page, forced) {
-            var self = this;
-
-            if (isNaN(page)) return self;
-
-            page = +page;
-            if (self.totalPage != undefined && page > self.totalPage) page = self.totalPage;
-            if (page < 1) page = 1;
-
-            if (page == self.page && !forced) return self;
-
-            self.load(page);
-            if (self.ops.load && self.ops.preload) self._load(page + 1);
-
-            if (self.onchange) self.onchange.call(self, page);
-
-            return self;
-        },
-        //绘制导航区(分页按钮)
-        drawNav: function () {
-            var self = this,
-                ops = self.ops,
-                boxNav = ops.boxNav;
-
-            if (!boxNav) return self;
-
-            var totalCount = self.totalCount,
-                pageSize = self.pageSize,
-
-                totalPage = self.totalPage,
-                page = self.page,
-
-                href = ops.href,
-                text = ops.text || {},
-
-                list_bar = create_pager_bar_data(self.size, totalPage, page);
-
-            if (href != undefined) href += href.indexOf("?") != -1 ? "&" : "?";
-
-            var get_html_bar = function (i, title, className) {
-                if (!className) className = i == page ? "on" : (i ? "" : "skip");
-
-                return '<li' + (className ? ' class="' + className + '"' : '') + ' x="' + i + '">' + (href ? '<a' + (i ? ' href="' + href + 'page=' + i + '"' : '') + '>' + title + '</a>' : title) + '</li>';
-            };
-
-            var draw_size = ops.drawSize || function (self, html_page, html_count) {
-                return html_page + '/' + html_count;
-            };
-
-            var html =
-                '<div class="inline-block pager-bar' + (href ? ' pager-link' : '') + '">' +
-                    '<ul>' +
-                        get_html_bar(Math.max(page - 1, 1), text.prev || '&lt;上一页', "prev") +
-                        list_bar.map(function (i) {
-                            return get_html_bar(i, i || "…");
-                        }).join('') +
-                        get_html_bar(Math.min(page + 1, totalPage), text.next || '下一页&gt;', "next") +
-                    '</ul>' +
-                '</div>' +
-                (ops.showSize !== false ?
-                '<div class="inline-block pager-count">' +
-                    draw_size(self, '每页<span class="page-size">' + pageSize + '</span>条', '共<span class="total-count">' + totalCount + '</span>条数据') +
-                '</div>' : '');
-
-            $(boxNav).html(html);
-        },
-        //绘制UI
-        draw: function (list) {
-            this.drawNav();
-            this.ops.draw(list);
-
-            return this;
-        }
-    });
-
-    //------------------------- export -------------------------
-
-    Q.DataPager = DataPager;
-
-})();
-
-﻿/*
-* Q.UI.ColorPicker.js 颜色选择器
-* https://github.com/devin87/Q.UI.js
-* author:devin87@qq.com
-* update:2015/12/08 14:39
-*/
-(function (undefined) {
-    "use strict";
-
-    var document = window.document,
-
-        isFunc = Q.isFunc,
-
-        extend = Q.extend,
-        //fire = Q.fire,
-
-        getFirst = Q.getFirst,
-        getNext = Q.getNext,
-        getLast = Q.getLast,
-
-        //getOffset = Q.offset,
-
-        createEle = Q.createEle,
-        factory = Q.factory,
-
-        E = Q.event;
-
-    var POS_VALUE_HIDDEN = -10000;
-
-    //设置元素位置
-    function set_pos(el, x, y) {
-        if (x != undefined) el.style.left = x + "px";
-        if (y != undefined) el.style.top = y + "px";
-    }
-
-    //---------------------- util ----------------------
-
-    var RE_RGB = /^rgb\((\d+),(\d+),(\d+)\)$/i,
-        RE_Hex = /^#?([0-9A-F]{3}|[0-9A-F]{6})$/i;
-
-    //int值转为16进制颜色
-    function int2hex(n) {
-        return "#" + ("00000" + n.toString(16)).slice(-6);   //faster
-
-        //var str = ("00000" + n.toString(16)).slice(-6);
-        //return "#" + str.slice(4) + str.slice(2, 4) + str.slice(0, 2);
-    }
-
-    //RGB颜色转为16进制颜色
-    function rgb2hex(r, g, b) {
-        return int2hex(r * 65536 + g * 256 + b);
-        //return int2hex(r + g * 256 + b * 65536);
-    }
-
-    //转为16进制颜色
-    function toHex(color) {
-        if (typeof color == "number") return int2hex(color);
-
-        color = color.replace(/\s+/g, "");
-        if (!RE_RGB.test(color)) return color;
-
-        return rgb2hex(+RegExp.$1, +RegExp.$2, +RegExp.$3);
-    }
-
-    //转为RGB颜色
-    function toRGB(color) {
-        if (typeof color == "number") color = int2hex(color);
-        if (!RE_Hex.test(color)) return color;
-
-        color = RegExp.$1;
-
-        if (color.length == 3) {
-            var a = color.charAt(0), b = color.charAt(1), c = color.charAt(2);
-            color = a + a + b + b + c + c;
-        }
-
-        return "rgb(" + parseInt(color.substr(0, 2), 16) + "," + parseInt(color.substr(2, 2), 16) + "," + parseInt(color.substr(4, 2), 16) + ")";
-    }
-
-    //---------------------- ColorPicker ----------------------
-
-    var LIST_COLOR = ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
-
-    //颜色选择器
-    function ColorPicker(ops) {
-        var self = this;
-
-        //默认行数与列数
-        self.row = 12;  //不得超过 LIST_COLOR.length
-        self.col = 21;
-
-        self.set(ops).init();
-    }
-
-    factory(ColorPicker).extend({
-        //初始化
-        init: function () {
-            var self = this;
-
-            var html =
-                '<div class="xp-title">' +
-                    '<div class="xp-preview"></div>' +
-                    '<div class="xp-val"></div>' +
-                    '<div class="xp-type">' +
-                        '<select>' +
-                            '<option value="Cube" selected="selected">立方色</option>' +
-                            '<option value="Series">连续色调</option>' +
-                            '<option value="Gray">灰度等级</option>' +
-                        '</select>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="xp-table">' +
-                    '<table>' +
-                        ('<tr>' + '<td></td>'.repeat(self.col) + '</tr>').repeat(self.row) +
-                    '</table>' +
-                '</div>';
-
-            var box = createEle("div", "x-picker", html),
-
-                boxTitle = getFirst(box),
-                boxPreview = getFirst(boxTitle),
-                boxValue = getNext(boxPreview),
-                boxType = getLast(boxTitle),
-
-                boxTable = getLast(box),
-                table = getFirst(boxTable);
-
-            Q.body.appendChild(box);
-
-            self.box = box;
-            self.table = table;
-            self.boxPreview = boxPreview;
-            self.boxValue = boxValue;
-
-            //------------------- init event -------------------
-
-            //类型切换
-            E.add(getFirst(boxType), "change", function () {
-                self["draw" + this.value + "Color"]();
-            });
-
-            E.add(table, {
-                //鼠标移动,预览颜色
-                mouseover: function (e) {
-                    self.setPreview(this.style.backgroundColor);
-                },
-
-                //选择并设置颜色
-                click: function (e) {
-                    var color = this.style.backgroundColor;
-                    self.fire(color).hide();
-                }
-            }, "td");
-
-            E.add(box, "click", E.stop);
-            E.add(document, "click", function (e) { self.hide(); });
-
-            return self.drawCubeColor().hide();
-        },
-        //设置 { isHex,callback }
-        //isHex:输出为16进制颜色
-        set: function (ops) {
-            extend(this, ops, true);
-
-            return this.setPreview((ops || {}).color);
-        },
-
-        //触发回调函数
-        fire: function (color) {
-            var self = this;
-            if (isFunc(self.callback)) self.callback.call(self, self.isHex ? toHex(color) : color);
-            return self;
-        },
-        //设置预览颜色
-        setPreview: function (color) {
-            var self = this;
-
-            if (color) {
-                self.boxPreview.style.backgroundColor = color;
-                self.boxValue.innerHTML = toHex(color).toUpperCase();
-            }
-
-            return self;
-        },
-
-        //填充单元格颜色
-        fillColor: function (i, j, color) {
-            this.table.rows[i].cells[j].style.backgroundColor = color;
-            return this;
-        },
-
-        //画左边的颜色
-        drawLeftColor: function () {
-            var self = this,
-                row = self.row;
-
-            for (var i = 0; i < row; i++) {
-                self.fillColor(i, 0, "#000").fillColor(i, 1, LIST_COLOR[i]).fillColor(i, 2, "#000");
-            }
-
-            return self;
-        },
-        //画立方色
-        drawCubeColor: function () {
-            var self = this,
-                row = self.row,
-                col = self.col,
-                start = 0,
-                step = 0x330000,
-                color;
-
-            self.drawLeftColor();
-
-            for (var i = 0; i < row; i++) {
-                if (i > 5) color = start = 0x990000 + (i - 6) * 0x000033;
-                else color = start = 0x0 + i * 0x000033;
-
-                for (var j = 3; j < col; j++) {
-                    self.fillColor(i, j, int2hex(color));
-                    color += 0x003300;
-                    if ((j - 2) % 6 == 0) start += step, color = start;
-                }
-            }
-
-            return self;
-        },
-        //画连续色
-        drawSeriesColor: function () {
-            var self = this,
-                row = self.row,
-                col = self.col,
-                start = 0xCCFFFF,
-                step = 0x660000,
-                flag = 1,
-                color;
-
-            self.drawLeftColor();
-
-            for (var i = 0; i < row; i++) {
-                if (i > 5) color = start = 0xFF00FF + (i - 6) * 0x003300;
-                else color = start = 0xCCFFFF - i * 0x003300;
-
-                flag = 1;
-
-                for (var j = 3; j < col; j++) {
-                    self.fillColor(i, j, int2hex(color));
-                    color -= 0x000033 * flag;
-                    if ((j - 2) % 6 == 0) {
-                        flag *= -1;
-                        start -= step;
-                        color = start - ((flag > 0) ? 0 : 0x0000FF);
-                    }
-                }
-            }
-
-            return self;
-        },
-        //画灰度等级色
-        drawGrayColor: function () {
-            var self = this,
-                row = self.row,
-                col = self.col,
-                color = 0xffffff;
-
-            for (var i = 0; i < row; i++) {
-                for (var j = 0; j < col; j++) {
-                    self.fillColor(i, j, int2hex(color));
-
-                    if (color <= 0) color = 0x000000;
-                    else color -= 0x010101;
-                }
-            }
-
-            return self;
-        },
-
-        //显示
-        show: function (x, y) {
-            var self = this;
-
-            if (x == undefined) x = self.x;
-            else self.x = x;
-
-            if (y == undefined) y = self.y;
-            else self.y = y;
-
-            set_pos(self.box, x, y);
-
-            return self;
-        },
-        //隐藏
-        hide: function () {
-            set_pos(this.box, POS_VALUE_HIDDEN, POS_VALUE_HIDDEN);
-            return this;
-        },
-
-        //是否为隐藏状态
-        isHidden: function () {
-            var self = this,
-                box = self.box,
-                x = parseFloat(box.style.left),
-                y = parseFloat(box.style.top);
-
-            return x <= -box.offsetWidth || y <= -box.offsetHeight;
-        },
-
-        //自动切换显示或隐藏
-        toggle: function (x, y) {
-            return this.isHidden() ? this.show(x, y) : this.hide();
-        }
-    });
-
-    //------------------------- export -------------------------
-
-    Q.toHex = toHex;
-    Q.toRGB = toRGB;
-    Q.ColorPicker = ColorPicker;
 
 })();

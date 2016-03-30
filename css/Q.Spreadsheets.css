@@ -22,12 +22,12 @@ html { *overflow: hidden; }
 .ss-colStart, .ss-colHead { font-size: 14px; height: 19px; line-height: 18px; background: #f6f6f6 url("../images/SS/colHead.gif") repeat-x scroll 0 0; font-size: 14px; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; }
 
 .ss-header { }
-.ss-colStart { }
-.ss-colHead { }
+.ss-colStart { left: 0; top: 0; }
+.ss-colHead { top: 0; }
 
 .ss-val { display: table-cell; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; overflow: hidden; vertical-align: bottom; }
 
-.ss-row { }
+.ss-row { position: absolute; }
 .ss-rowNum { font-size: 12px; line-height: 18px; background-color: #F4F4F4; }
 .ss-cell { cursor: cell; }
 .ss-td { display: table-cell; vertical-align: bottom; }
