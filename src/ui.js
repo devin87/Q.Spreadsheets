@@ -3,7 +3,7 @@
 /*
 * ui.js
 * author:devin87@qq.com
-* update: 2015/11/23 17:33
+* update: 2016/04/01 17:15
 */
 (function (window, undefined) {
     "use strict";
@@ -46,7 +46,6 @@
                 elView = ops.view;
 
             ops.height = height;
-            self.elView = elView;
 
             var html =
                 '<div class="ss-toolbar"></div>' +
@@ -55,6 +54,8 @@
                 '<div class="ss-footbar"></div>';
 
             $(elView).addClass("ss-view").height(height == "auto" ? view.getHeight() : height).html(html);
+
+            self.elView = elView;
 
             if (UI.init) UI.init(self);
 

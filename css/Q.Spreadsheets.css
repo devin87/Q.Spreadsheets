@@ -4,13 +4,13 @@ html { *overflow: hidden; }
 .ss-view { position: relative; min-height: 200px; overflow: hidden; }
 
 .ss-sheet { position: relative; }
-.ss-grid { position: absolute; background-color: #fff; overflow: hidden; }
+.ss-grid { position: absolute; background-color: #fff; overflow: hidden; -moz-user-select: none; -webkit-user-select: none; -ms-user-select: none; -khtml-user-select: none; user-select: none; }
 
-.ssg-1 { z-index: 4; }
+/*.ssg-1 { z-index: 4; }
 .ssg-2 { z-index: 3; }
-.ssg-3 { z-index: 2; }
+.ssg-3 { z-index: 2; }*/
 
-.ss-vscroll { position: absolute; top: 0; right: 0; width: 17px; height: 100%; overflow-x: hidden; overflow-y: scroll; z-index: 10; }
+.ss-vscroll { position: absolute; top: 0; right: 0; width: 17px; height: 100%; overflow-x: hidden; overflow-y: scroll; z-index: 50; }
 .ss-hscroll { width: 500px; overflow-x: scroll; overflow-y: hidden; }
 
 .ss-total-width { height: 1px; }
@@ -19,18 +19,35 @@ html { *overflow: hidden; }
 .ss-colStart, .ss-colHead, .ss-rowNum, .ss-cell { position: absolute; /*border-collapse: collapse; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc;*/ overflow: hidden; }
 .ss-colStart, .ss-colHead, .ss-rowNum { text-align: center; cursor: default; }
 .ss-colStart, .ss-rowNum { }
-.ss-colStart, .ss-colHead { font-size: 14px; height: 19px; line-height: 18px; background: #f6f6f6 url("../images/SS/colHead.gif") repeat-x scroll 0 0; font-size: 14px; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; }
+.ss-colStart, .ss-colHead { font-size: 14px; background: #f6f6f6 url("../images/SS/colHead.gif") repeat-x scroll 0 0; /*border-bottom: 1px solid #ccc; border-right: 1px solid #ccc;*/ }
 
 .ss-header { }
 .ss-colStart { left: 0; top: 0; }
 .ss-colHead { top: 0; }
 
 .ss-val { display: table-cell; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; overflow: hidden; vertical-align: bottom; }
+.ss-colStart .ss-val, .ss-colHead .ss-val { height: 21px; line-height: 21px; }
 
 .ss-row { position: absolute; }
 .ss-rowNum { font-size: 12px; line-height: 18px; background-color: #F4F4F4; }
 .ss-cell { cursor: cell; }
 .ss-td { display: table-cell; vertical-align: bottom; }
+
+.ss-on { color: #217346; font-weight: bold; z-index: 5; }
+.ss-header .ss-on { border-bottom: 2px solid #217346; }
+.ss-row .ss-on { background: #e6e6e6; border-right: 2px solid #217346; }
+.ss-header .ss-on .ss-val { border-bottom-width: 0; }
+.ss-row .ss-on .ss-val { border-right-width: 0; }
+
+.ss-panel { position: absolute; border: 2px solid #217346; z-index: 20; }
+.ss-p-area { width: 100%; height: 100%; background-color: #637bd1; }
+.ss-p-resize { position: absolute; right: -5px; bottom: -5px; width: 7px; height: 7px; background-color: #217346; border: 1px solid #ffffff; font-size: 0; overflow: hidden; cursor: crosshair; }
+
+.ss-line-cols-active, .ss-line-rows-active { position: absolute; background-color: #217346; overflow: hidden; z-index: 10; }
+.ss-line-cols-active { height: 2px; }
+.ss-line-rows-active { width: 2px; }
+
+.ss-mark { position: absolute; z-index: 10; cursor: cell; }
 
 /* ------------------ ui.footbar ------------------ */
 .ss-footbar { background-color: #D8E6FC; padding-bottom: 1px; position: absolute; left: 0; bottom: 0; width: 100%; height: 24px; z-index: 10; font-size: 12px; }

@@ -4,7 +4,7 @@
 /*
 * workbook.js
 * author:devin87@qq.com
-* update: 2015/12/02 12:17
+* update: 2016/03/31 15:28
 */
 (function (window, undefined) {
     "use strict";
@@ -104,9 +104,12 @@
                 if (colIndex > maxCol) maxCol = colIndex;
             }
 
-            sheet.displayFormula = sheet.displayFormula !== false;
-            sheet.displayGridlines = sheet.displayGridlines !== false;
-            sheet.displayHeadings = sheet.displayHeadings !== false;
+            sheet.displayFormula = sheet.displayFormula !== false;       //是否显示公示栏
+            sheet.displayGridlines = sheet.displayGridlines !== false;   //是否显示网格线
+            sheet.displayHeadings = sheet.displayHeadings !== false;     //是否显示标头和行号
+
+            sheet.isFreeze = sheet.isFreeze === true;      //是否冻结单元格
+            sheet.isHidden = sheet.isHidden === true;      //Sheet是否隐藏
 
             sheet.colWidths = sheet.colWidths || {};
             sheet.rowHeights = sheet.rowHeights || {};
@@ -121,6 +124,10 @@
             sheet.shapes = sheet.shapes || [];
 
             sheet.cells = cells;
+
+            ["firstRow", "firstCol", "lastRow", "lastCol", "scrollRow", "scrollCol", "freezeRow", "freezeCol"].forEach(function (prop) {
+                sheet[prop] = sheet[prop] || 0;
+            });
 
             sheet.maxRow = cells.length;
             sheet.maxCol = maxCol;

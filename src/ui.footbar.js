@@ -2,7 +2,7 @@
 /*
 * ui.footbar.js 底部栏操作
 * author:devin87@qq.com
-* update: 2016/03/30 15:48
+* update: 2016/04/01 17:15
 */
 (function (window, undefined) {
     "use strict";
