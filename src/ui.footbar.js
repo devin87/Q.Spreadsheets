@@ -2,7 +2,7 @@
 /*
 * ui.footbar.js 底部栏操作
 * author:devin87@qq.com
-* update: 2016/04/01 17:15
+* update: 2016/04/05 17:24
 */
 (function (window, undefined) {
     "use strict";
@@ -11,11 +11,13 @@
         vals = Q.vals,
         toMap = Q.toMap,
 
+        getFirst = Q.getFirst,
         createEle = Q.createEle,
 
         measureText = Q.getMeasureText(),
         view = Q.view,
 
+        DragX = Q.DragX,
         ContextMenu = Q.ContextMenu,
 
         SS = Q.SS,
@@ -91,9 +93,9 @@
             self.elTabs = elTabs;
             self.elHScroll = elHScroll;
 
-            //水平滚动条宽度
-            self._HScrollWidth = elHScroll.offsetWidth;
-            self._HScrollHeight = elHScroll.offsetHeight;
+            //水平滚动条宽高
+            self._HScrollbarWidth = elHScroll.offsetWidth;
+            self._HScrollbarHeight = elHScroll.offsetHeight;
 
             //绘制Sheet标签
             self.drawTabs();
@@ -174,6 +176,44 @@
 
                 self.scrollToColAsync(col, false);
             });
+
+            //底部拖动更改水平滚动条宽度事件
+            new DragX(function () {
+                var base = this,
+                    minWidth = 200,
+                    maxWidth = 0,
+                    currentWidth = 0,
+                    startX;
+
+                //必须,拖动元素
+                base.ops = { ele: elResize, autoCss: false, autoIndex: false };
+
+                //处理函数:鼠标按下时触发
+                base.doDown = function (e) {
+                    startX = e.clientX;
+
+                    currentWidth = elHScroll.offsetWidth;
+                    maxWidth = self.GRID_WIDTH - 60 - getFirst(elTabs).offsetWidth;
+                };
+
+                //处理函数:拖动时触发
+                base.doMove = function (e) {
+                    var x = e.clientX - startX;
+                    if (x == 0) return;
+
+                    var width = currentWidth - x;
+                    if (width > maxWidth) width = maxWidth;
+                    else if (width < minWidth) width = minWidth;
+
+                    elHScroll.style.width = width + "px";
+                };
+
+                //处理函数:鼠标释放时触发
+                base.doUp = function () {
+                    //for 通用处理
+                    self.setHScrollbarWidth(elHScroll.offsetWidth);
+                };
+            });
         },
         //创建“查看所有工作表”菜单,若菜单已存在,则先销毁再创建
         createMenuViewAll: function () {
@@ -223,24 +263,47 @@
 
                 elTabs = self.elTabs;
 
+            //var html =
+            //    sheets.map(function (sheet) {
+            //        if (!workbook.isDisplaySheet(sheet)) return '';
+
+            //        var index = sheet.index,
+            //            name = sheet.name,
+            //            tabColor = sheet.tabColor;
+
+            //        var html =
+            //            '<div class="sst-item' + (index == sheetIndex ? ' sst-on' : '') + '" title="' + name + '"' + (tabColor ? ' style="color:' + tabColor + ';"' : '') + '>' +
+            //                '<div class="sst-name">' + name + '</div>' +
+            //            '</div>';
+
+            //        return html;
+            //    }).join('') +
+            //    '<div class="sst-insert" title="' + Lang.INSERT_SHEET + '">' +
+            //        '<div class="sst-name">+</div>' +
+            //    '</div>';
+
             var html =
-                sheets.map(function (sheet) {
-                    if (!workbook.isDisplaySheet(sheet)) return '';
+                '<table class="ss-tabs">' +
+                    '<tr>' +
+                        sheets.map(function (sheet) {
+                            if (!workbook.isDisplaySheet(sheet)) return '';
 
-                    var index = sheet.index,
-                        name = sheet.name,
-                        tabColor = sheet.tabColor;
+                            var index = sheet.index,
+                                name = sheet.name,
+                                tabColor = sheet.tabColor;
 
-                    var html =
-                        '<div class="sst-item' + (index == sheetIndex ? ' sst-on' : '') + '" title="' + name + '"' + (tabColor ? ' style="color:' + tabColor + ';"' : '') + '>' +
-                            '<div class="sst-name">' + name + '</div>' +
-                        '</div>';
+                            var html =
+                                '<td class="sst-item' + (index == sheetIndex ? ' sst-on' : '') + '" title="' + name + '"' + (tabColor ? ' style="color:' + tabColor + ';"' : '') + '>' +
+                                    '<div class="sst-name">' + name + '</div>' +
+                                '</td>';
 
-                    return html;
-                }).join('') +
-                '<div class="sst-insert" title="' + Lang.INSERT_SHEET + '">' +
-                    '<div class="sst-name">+</div>' +
-                '</div>';
+                            return html;
+                        }).join('') +
+                        '<td class="sst-insert" title="' + Lang.INSERT_SHEET + '">' +
+                            '<div class="sst-name">+</div>' +
+                        '</td>' +
+                    '</tr>' +
+                '</table>';
 
             $(elTabs).html(html);
 
@@ -259,6 +322,19 @@
                 menu.destroy();
                 self.menuViewAll = undefined;
             }
+
+            var elHScroll = self.elHScroll,
+                scrollbarWidth = elHScroll.offsetWidth,
+                maxScrollbarWidth = self.GRID_WIDTH - 60 - getFirst(elTabs).offsetWidth;
+
+            if (scrollbarWidth > maxScrollbarWidth) self.setHScrollbarWidth(maxScrollbarWidth);
+        },
+        //设置水平滚动条宽度
+        setHScrollbarWidth: function (width) {
+            var self = this;
+            self._HScrollbarWidth = width;
+            self.elHScroll.style.width = width + "px";
+            return self;
         },
         //激活sheet选项卡
         activeTab: function (sheet) {

@@ -6168,7 +6168,7 @@
 * Q.UI.Box.js (包括遮罩层、拖动、弹出框)
 * https://github.com/devin87/Q.UI.js
 * author:devin87@qq.com
-* update:2016/03/08 15:02
+* update:2016/04/05 17:09
 */
 (function (undefined) {
     "use strict";
@@ -6358,7 +6358,8 @@
                 target = ops.target || ele,
 
                 autoIndex = ops.autoIndex !== false,
-                autoMask = ops.autoMask !== false,
+                autoMask = !!ops.autoMask,
+                autoCss = ops.autoCss !== false,
                 autoCursor = ops.autoCursor !== false,
 
                 zIndex = ele.nodeType == 1 ? +getStyle(ele, "z-index") : 0,
@@ -6382,8 +6383,8 @@
             if (zIndex >= CURRENT_INDEX) CURRENT_INDEX = zIndex + 1;
 
             //初始化元素状态
-            setCssIfNot(ele, "position", "absolute");
-            if (autoCursor) setCssIfNot(target, "cursor", "move");
+            if (autoCss) setCssIfNot(ele, "position", "absolute");
+            if (autoCss && autoCursor) setCssIfNot(target, "cursor", "move");
 
             //设置元素居中
             if (ops.center) {
@@ -6539,7 +6540,7 @@
             var base = this,
 
                 range = ops.range || { x: 0, y: 0 },
-                hasShadow = ops.shadow !== false,
+                hasShadow = !!ops.shadow,
 
                 w = ele.offsetWidth,
                 h = ele.offsetHeight,
@@ -6828,6 +6829,8 @@
                 self.dr = setDrag(box, {
                     target: boxHead,
                     center: ops.center !== false,
+                    shadow: ops.shadow !== false,
+                    autoMask: true,
 
                     //1.由于拖动会创建一个遮罩层,点击关闭时不会触发 .x-close 的click事件,此处检查点击元素,只有非 .x-close 元素才会执行拖动操作
                     //2.亦可将 .x-close 的click事件替换为mousedown事件以优先执行,可不必传入onCheck

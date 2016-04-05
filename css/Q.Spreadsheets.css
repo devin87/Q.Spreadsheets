@@ -72,7 +72,7 @@ html { *overflow: hidden; }
 
 .sst-tabs { }
 
-.sst-item, .sst-insert { float: left; display: inline; background: url(../images/SS/tab_left.gif) no-repeat scroll left bottom; padding: 0 2px; height: 20px; margin-top: -1px; cursor: pointer; }
+.sst-item, .sst-insert { /*float: left; display: inline;*/ background: url(../images/SS/tab_left.gif) no-repeat scroll left bottom; padding: 0 2px; height: 20px; margin-top: -1px; cursor: pointer; }
 .sst-name { background: url(../images/SS/tab_right.gif) no-repeat scroll right bottom; height: 20px; line-height: 18px; padding: 0 8px; white-space: nowrap; float: left; }
 .sst-on { background-image: url(../images/SS/tab_left_on.gif); }
 .sst-on .sst-name { background-image: url(../images/SS/tab_right_on.gif); font-weight: bold; }

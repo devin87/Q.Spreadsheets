@@ -126,7 +126,7 @@
 
             self.elMark = getNext(self.elGrid4);
             self.elVScroll = getLast(elSheet);
-            self._VScrollWidth = self.elVScroll.offsetWidth || 17;
+            self._VScrollbarWidth = self.elVScroll.offsetWidth || 17;
 
             self._rowNumWidth = DEF_ROW_NUM_WIDTH;
             self._colHeadHeight = DEF_COL_HEAD_HEIGHT;
@@ -151,7 +151,7 @@
             self.GRID_HEIGHT = GRID_HEIGHT;
 
             elSheet.style.cssText = 'width:' + GRID_WIDTH + 'px;height:' + GRID_HEIGHT + 'px;';
-            elMark.style.cssText = 'width:' + (GRID_WIDTH - self._VScrollWidth) + 'px;height:' + GRID_HEIGHT + 'px;';
+            elMark.style.cssText = 'width:' + (GRID_WIDTH - self._VScrollbarWidth) + 'px;height:' + GRID_HEIGHT + 'px;';
 
             return self;
         },
@@ -460,12 +460,12 @@
 
         getHScrollWidth: function () {
             var self = this;
-            return self._HScrollWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
+            return self.elHScroll.offsetsWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
         },
 
         getVScrollHeight: function () {
             var self = this;
-            return self._VScrollHeight + self.getRowsHeight(self._splitRow, self._maxRow + 1) - self.SCROLL_HEIGHT;
+            return self._VScrollbarHeight + self.getRowsHeight(self._splitRow, self._maxRow + 1) - self.SCROLL_HEIGHT;
         },
 
         updateHScrollWidth: function () {
@@ -486,7 +486,7 @@
                 getFirst(elVScroll).style.height = total_height + "px";
 
                 //修复IE8下垂直滚动条不显示的问题
-                if (Q.ie < 8) elVScroll.style.overflowY = total_height > self._VScrollHeight ? "auto" : "scroll";
+                if (Q.ie < 8) elVScroll.style.overflowY = total_height > self._VScrollbarHeight ? "auto" : "scroll";
             }
 
             return self;
@@ -582,7 +582,7 @@
             if (elVScroll) {
                 elVScroll.style.height = GRID_HEIGHT + "px";
 
-                self._VScrollHeight = GRID_HEIGHT;
+                self._VScrollbarHeight = GRID_HEIGHT;
                 self.updateVScrollHeight();
             }
 
