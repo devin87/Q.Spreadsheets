@@ -2512,7 +2512,12 @@
         DEF_ROW_NUM_WIDTH = 45,
         DEF_COL_HEAD_HEIGHT = 22,
 
-        DEF_EL_ROW = createEle("div", "ss-row");
+        INFINITY_VALUE = -1,
+
+        RANGE_NO_MERGE = -1,           //非合并区域
+        RANGE_IS_MERGE = 0,            //合并区域
+        RANGE_IS_MERGE_FIRST = 1,      //合并区域中的第一个单元格
+        RANGE_IS_MERGE_OTHER = 2;      //合并区域中的其它单元格
 
     function log(msg) {
         //if (window.console) console.log.apply(console, arguments);
@@ -2557,6 +2562,66 @@
 
         index += Math.floor(fix / v);
         return index < next ? index : next - 1;
+    }
+
+    //计算区域(支持全选行或全选列 eg:[15,INFINITY_VALUE,16,INFINITY_VALUE],[INFINITY_VALUE,3,INFINITY_VALUE,5])
+    function computeRange(list, firstRow, firstCol, lastRow, lastCol) {
+        var _firstRow = firstRow,
+            _firstCol = firstCol,
+            _lastRow = lastRow,
+            _lastCol = lastCol,
+
+            skipRow = _firstRow == INFINITY_VALUE,
+            skipCol = _firstCol == INFINITY_VALUE,
+
+            data;
+
+        for (var i = 0, len = list.length; i < len; i++) {
+            if (skipRow && skipCol) break;
+
+            data = list[i];
+            if (skipRow || data[0] == INFINITY_VALUE) {  //全选行
+                if (!skipRow) {
+                    skipRow = true;
+                    _firstRow = _lastRow = INFINITY_VALUE;
+                }
+                if (skipCol || data[1] == INFINITY_VALUE) {
+                    _firstCol = _lastCol = INFINITY_VALUE;
+                    break;
+                }
+
+                if (Math.abs(data[1] - firstCol + data[3] - lastCol) <= lastCol - firstCol + data[3] - data[1]) {
+                    if (data[1] < _firstCol) _firstCol = data[1];
+                    if (data[3] > _lastCol) _lastCol = data[3];
+                }
+            } else if (skipCol || data[1] == INFINITY_VALUE) {  //全选列
+                if (!skipCol) {
+                    skipCol = true;
+                    _firstCol = _lastCol = INFINITY_VALUE;
+                }
+                if (skipRow || data[0] == INFINITY_VALUE) {
+                    _firstRow = _lastRow = INFINITY_VALUE;
+                    break;
+                }
+
+                if (Math.abs(data[0] - firstRow + data[2] - lastRow) <= lastRow - firstRow + data[2] - data[0]) {
+                    if (data[0] < _firstRow) _firstRow = data[0];
+                    if (data[2] > _lastRow) _lastRow = data[2];
+                }
+            } else {
+                //判断矩形相交
+                if (Math.abs(data[0] - firstRow + data[2] - lastRow) <= lastRow - firstRow + data[2] - data[0] && Math.abs(data[1] - firstCol + data[3] - lastCol) <= lastCol - firstCol + data[3] - data[1]) {
+                    if (data[0] < _firstRow) _firstRow = data[0];
+                    if (data[1] < _firstCol) _firstCol = data[1];
+                    if (data[2] > _lastRow) _lastRow = data[2];
+                    if (data[3] > _lastCol) _lastCol = data[3];
+                }
+            }
+
+            if (_firstRow != firstRow || _firstCol != firstCol || _lastRow != lastRow || _lastCol != lastCol) return computeRange(list, _firstRow, _firstCol, _lastRow, _lastCol);
+        }
+
+        return [_firstRow, _firstCol, _lastRow, _lastCol];
     }
 
     UI.extend({
@@ -2931,7 +2996,7 @@
 
         getHScrollWidth: function () {
             var self = this;
-            return self.elHScroll.offsetsWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
+            return self._HScrollbarWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
         },
 
         getVScrollHeight: function () {
@@ -3007,6 +3072,188 @@
             return self;
         },
 
+        updateGridMerges: function () {
+            var self = this,
+                sheet = self.sheet,
+                mapMerge = {};
+
+            sheet.merges.forEach(function (data) {
+                for (var i = data[0], lastRow = data[2]; i <= lastRow; i++) {
+                    if (!mapMerge[i]) mapMerge[i] = {};
+
+                    for (var j = data[1], lastCol = data[3]; j <= lastCol ; j++) {
+                        mapMerge[i][j] = data;
+                    }
+                }
+            });
+
+            self.mapMerge = mapMerge;
+
+            return self;
+        },
+
+        getMergeData: function (row, col) {
+            //INFINITY_VALUE 表示整行或整列
+            var mapMerge = this.mapMerge,
+                mapRow = mapMerge[INFINITY_VALUE] || mapMerge[row];
+
+            return mapRow ? mapRow[INFINITY_VALUE] || mapRow[col] : undefined;
+        },
+
+        getMergeState: function (firstRow, firstCol, lastRow, lastCol) {
+            var self = this,
+                data = self.getMergeData(firstRow, firstCol);
+
+            if (!data) return RANGE_NO_MERGE;
+
+            var isFirst = data[0] == firstRow && data[1] == firstCol;
+            if (isFirst && data[2] == lastRow && data[3] == lastCol) return RANGE_IS_MERGE;
+
+            return isFirst ? RANGE_IS_MERGE_FIRST : RANGE_IS_MERGE_OTHER;
+        },
+
+        isMerge: function (firstRow, firstCol, lastRow, lastCol) {
+            return this.getMergeState(firstRow, firstCol, lastRow, lastCol) == RANGE_IS_MERGE;
+        },
+
+        //按区域划分合并数据([区域内,区域外])
+        splitAllMerges: function (firstRow, firstCol, lastRow, lastCol) {
+            var self = this,
+                dataMerges = self.sheet.merges;
+
+            if (firstRow == INFINITY_VALUE && firstCol == INFINITY_VALUE) return [dataMerges, []];
+
+            var inRegionList = [], outRegionList = [], i = 0, len = dataMerges.length, data;
+
+            if (firstRow == INFINITY_VALUE) {
+                for (; i < len; i++) {
+                    data = dataMerges[i];
+                    if (firstCol <= data[1] && lastCol >= data[3]) inRegionList.push(data);
+                    else outRegionList.push(data);
+                }
+            } else if (firstCol == INFINITY_VALUE) {
+                for (; i < len; i++) {
+                    data = dataMerges[i];
+                    if (firstRow <= data[0] && lastRow >= data[2]) inRegionList.push(data);
+                    else outRegionList.push(data);
+                }
+            } else {
+                for (; i < len; i++) {
+                    data = dataMerges[i];
+
+                    if (firstRow <= data[0] && firstCol <= data[1] && lastRow >= data[2] && lastCol >= data[3]) inRegionList.push(data);
+                    else outRegionList.push(data);
+                }
+            }
+
+            return [inRegionList, outRegionList];
+        },
+
+        //计算选区
+        computeRange: function (firstRow, firstCol, lastRow, lastCol) {
+            return computeRange(this.sheet.merges, firstRow, firstCol, lastRow, lastCol);
+        },
+
+        _mergeCells2: function (firstRow, firstCol, lastRow, lastCol) {
+            var self = this,
+                list_merge_cell = [];
+
+            self.showPanel();
+        },
+
+        getElMerges: function (data) {
+            return self.mapElMerges[data.join("_")];
+        },
+
+        _mergeCells: function (data) {
+            var self = this,
+
+                _firstRow = data[0],
+                _firstCol = data[1],
+                _lastRow = data[2],
+                _lastCol = data[3],
+
+                key = data.join("_"),
+                mapElMerges = self.mapElMerges,
+                elMerges = mapElMerges[key];
+
+            if (!elMerges) {
+                mapElMerges[key] = elMerges = [];
+
+                var node = createEle("div", "ss-merge"), i = 0, el;
+                while (i < 4) {
+                    el = node.cloneNode(true);
+                    elMerges[i++] = el;
+                    self["elMerges" + i].appendChild(el);
+                }
+            }
+
+            var firstRow = data[0],
+                firstCol = data[1],
+                lastRow = data[2],
+                lastCol = data[3];
+
+            if (firstRow == INFINITY_VALUE) {
+                firstRow = 0;
+                lastRow = self._drawLastRow;
+            }
+
+            if (firstCol == INFINITY_VALUE) {
+                firstCol = 0;
+                lastCol = self._drawLastCol;
+            }
+
+            var left = self.getColLeft(firstCol),
+                top = self.getRowTop(firstRow),
+                width = self.getColsWidth(firstCol, lastCol),
+                height = self.getRowsHeight(firstRow, lastRow),
+
+                cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + (width - 1) + 'px;height:' + (height - 1) + 'px;',
+                cssFixTop = 'margin-top: -' + self.FIXED_HEIGHT + 'px;',
+                cssFixLeft = 'margin-left: -' + self.FIXED_WIDTH + 'px;';
+
+            elMerges[0].style.cssText = cssText;
+            elMerges[1].style.cssText = cssText + cssFixLeft;
+            elMerges[2].style.cssText = cssText + cssFixTop;
+            elMerges[3].style.cssText = cssText + cssFixLeft + cssFixTop;
+
+            return self;
+        },
+
+        mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
+            return this._mergeCells([firstRow, firstCol, lastRow, lastCol]);
+        },
+
+        initGridMerges: function () {
+            var self = this,
+                sheet = self.sheet;
+
+            var elMerges1 = createEle("div", "ss-merges"),
+                elMerges2 = elMerges1.cloneNode(true),
+                elMerges3 = elMerges1.cloneNode(true),
+                elMerges4 = elMerges1.cloneNode(true);
+
+            self.elGrid1.appendChild(elMerges1);
+            self.elGrid2.appendChild(elMerges2);
+            self.elGrid3.appendChild(elMerges3);
+            self.elGrid4.appendChild(elMerges4);
+
+            self.elMerges1 = elMerges1;
+            self.elMerges2 = elMerges2;
+            self.elMerges3 = elMerges3;
+            self.elMerges4 = elMerges4;
+
+            self.updateGridMerges();
+
+            self.mapElMerges = {};
+
+            sheet.merges.forEach(function (data) {
+                self._mergeCells(data);
+            });
+
+            return self;
+        },
+
         updateGridSize: function () {
             var self = this,
 
@@ -3018,11 +3265,14 @@
                 elHScroll = self.elHScroll,
                 elVScroll = self.elVScroll,
 
+                splitRow = self._splitRow,
+                splitCol = self._splitCol,
+
                 GRID_WIDTH = self.GRID_WIDTH,
                 GRID_HEIGHT = self.GRID_HEIGHT,
 
-                FIXED_WIDTH = self.getColLeft(self._splitCol),
-                FIXED_HEIGHT = self.getRowTop(self._splitRow);
+                FIXED_WIDTH = self.getColLeft(splitCol),
+                FIXED_HEIGHT = self.getRowTop(splitRow);
 
             self.FIXED_WIDTH = FIXED_WIDTH;
             self.FIXED_HEIGHT = FIXED_HEIGHT;
@@ -3030,14 +3280,14 @@
             self.SCROLL_WIDTH = GRID_WIDTH - FIXED_WIDTH;
             self.SCROLL_HEIGHT = GRID_HEIGHT - FIXED_HEIGHT;
 
-            elGrid4.style.left = elGrid2.style.left = elGrid3.style.width = elGrid1.style.width = FIXED_WIDTH + "px";
-            elGrid4.style.top = elGrid3.style.top = elGrid2.style.height = elGrid1.style.height = FIXED_HEIGHT + "px";
+            //elGrid4.style.left = elGrid2.style.left = elGrid3.style.width = elGrid1.style.width = FIXED_WIDTH + "px";
+            //elGrid4.style.top = elGrid3.style.top = elGrid2.style.height = elGrid1.style.height = FIXED_HEIGHT + "px";
 
-            //elGrid3.style.width = elGrid1.style.width = FIXED_WIDTH + 2 + "px";
-            //elGrid2.style.height = elGrid1.style.height = FIXED_HEIGHT+2 + "px";
+            elGrid3.style.width = elGrid1.style.width = FIXED_WIDTH + (splitCol ? 0 : 2) + "px";
+            elGrid2.style.height = elGrid1.style.height = FIXED_HEIGHT + (splitRow ? 0 : 2) + "px";
 
-            //elGrid4.style.left = elGrid2.style.left = FIXED_WIDTH + "px";
-            //elGrid4.style.top = elGrid3.style.top = FIXED_HEIGHT + "px";
+            elGrid4.style.left = elGrid2.style.left = FIXED_WIDTH + "px";
+            elGrid4.style.top = elGrid3.style.top = FIXED_HEIGHT + "px";
 
             elGrid4.style.width = elGrid2.style.width = self.SCROLL_WIDTH + "px";
             elGrid4.style.height = elGrid3.style.height = self.SCROLL_HEIGHT + "px";
@@ -3063,8 +3313,15 @@
         getElRowNum: function (row) {
             return this.elRowNums[row];
         },
+        getElColHead: function (col) {
+            return this.elColHeads[col];
+        },
         getElRowCells: function (row) {
             return this.elCells[row];
+        },
+        getElCell: function (row, col) {
+            var elRowCells = this.getElRowCells(row);
+            return elRowCells ? elRowCells[col] : undefined;
         },
 
         getElSSRowLeft: function (row) {
@@ -3634,22 +3891,60 @@
             return self;
         },
 
-        updateElLineColsActive: function (firstCol) {
-            var self = this,
-                elLineColsActive = self.elLineColsActive;
+        //updateElLineColsActive: function (firstCol) {
+        //    var self = this,
+        //        elLineColsActive = self.elLineColsActive;
 
-            if (elLineColsActive) elLineColsActive.style.left = (self.getColLeft(Math.max(firstCol, 0)) - self._scrollLeft) + "px";
+        //    if (elLineColsActive) elLineColsActive.style.left = (self.getColLeft(Math.max(firstCol, 0)) - self._scrollLeft) + "px";
+
+        //    return self;
+        //},
+
+        //updateElLineRowsActive: function (firstRow, firstCol) {
+        //    var self = this,
+        //        elLineRowsActive = self.elLineRowsActive;
+
+        //    if (elLineRowsActive) elLineRowsActive.style.top = (self.getRowTop(Math.max(firstRow, 0)) - self._scrollTop) + "px";
+
+        //    return self;
+        //},
+
+        showSplitHLine: function (row) {
+            var self = this,
+                elSplitHLine = self.SplitHLine;
+
+            if (!row) return self;
+
+            if (!elSplitHLine) {
+                self.SplitHLine = elSplitHLine = createEle("div", "ss-split-hline");
+                self.elSheet.appendChild(elSplitHLine);
+            }
+
+            elSplitHLine.style.cssText = "left:0px;top:" + (self.getRowTop(row) - 1) + "px;width:" + self.GRID_WIDTH + "px;";
+
+            return self;
+
+        },
+        showSplitVLine: function (col) {
+            var self = this,
+                elSplitVLine = self.SplitVLine;
+
+            if (!col) return self;
+
+            if (!elSplitVLine) {
+                self.elSplitVLine = elSplitVLine = createEle("div", "ss-split-vline");
+                self.elSheet.appendChild(elSplitVLine);
+            }
+
+            elSplitVLine.style.cssText = "left:" + (self.getColLeft(col) - 1) + "px;top:0px;height:" + self.GRID_HEIGHT + "px;";
 
             return self;
         },
 
-        updateElLineRowsActive: function (firstRow, firstCol) {
-            var self = this,
-                elLineRowsActive = self.elLineRowsActive;
+        showSplitLine: function () {
+            var self = this;
 
-            if (elLineRowsActive) elLineRowsActive.style.top = (self.getRowTop(Math.max(firstRow, 0)) - self._scrollTop) + "px";
-
-            return self;
+            return self.showSplitHLine(self._splitRow).showSplitVLine(self._splitCol);
         },
 
         showPanel: function (firstRow, firstCol, lastRow, lastCol) {
@@ -3692,17 +3987,17 @@
                 //elSheet.appendChild(elLineRowsActive);
             }
 
-            if (firstRow == -1) {
+            if (firstRow == INFINITY_VALUE) {
                 firstRow = 0;
                 lastRow = self._drawLastRow;
             }
 
-            if (firstCol == -1) {
+            if (firstCol == INFINITY_VALUE) {
                 firstCol = 0;
                 lastCol = self._drawLastCol;
             }
 
-            $(".ss-on", self.elSheet).removeClass("ss-on");
+            $(".ss-on", elSheet).removeClass("ss-on");
             self.activeColHeads(firstCol, lastCol).activeRowNums(firstRow, lastRow);
 
             var left = self.getColLeft(firstCol),
@@ -3730,6 +4025,9 @@
                 sheet = self.sheet,
                 tmp;
 
+            if (lastRow == undefined) lastRow = firstRow;
+            if (lastCol == undefined) lastCol = firstCol;
+
             if (firstRow > lastRow) {
                 tmp = firstRow;
                 firstRow = lastRow;
@@ -3742,6 +4040,27 @@
                 lastCol = tmp;
             }
 
+            var isSelectOne = firstRow == lastRow && firstCol == lastCol;
+            if (isSelectOne) {
+                var merge = self.getMergeData(firstRow, firstCol);
+                if (merge) {
+                    if (firstRow > merge[0]) firstRow = merge[0];
+                    if (firstCol > merge[1]) firstCol = merge[1];
+                    if (lastRow < merge[2]) lastRow = merge[2];
+                    if (lastCol < merge[3]) lastCol = merge[3];
+                }
+            } else {
+                var range = self.computeRange(firstRow, firstCol, lastRow, lastCol);
+                firstRow = range[0];
+                firstCol = range[1];
+                lastRow = range[2];
+                lastCol = range[3];
+
+                isSelectOne = self.isMerge(firstRow, firstCol, lastRow, lastCol);
+            }
+
+            self._isSelectOne = isSelectOne;
+
             self.showPanel(firstRow, firstCol, lastRow, lastCol);
 
             sheet.firstRow = firstRow;
@@ -3750,6 +4069,13 @@
             sheet.lastCol = lastCol;
 
             return self;
+        },
+
+        selectCellsAuto: function () {
+            var self = this,
+                sheet = self.sheet;
+
+            return self.selectCells(sheet.firstRow, sheet.firstCol, sheet.lastRow, sheet.lastCol);
         },
 
         drawCells: function () {
@@ -3854,7 +4180,7 @@
             var self = this,
                 sheet = self.sheet;
 
-            extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 0, scrollCol: 0, firstRow: 1, firstCol: 4, lastRow: 6, lastCol: 5, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 } }, true);
+            extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 0, scrollCol: 0, firstRow: 1, firstCol: 4, lastRow: 6, lastCol: 5, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 }, merges: [[1, 1, 3, 2], [4, 5, 8, 6]] }, true);
 
             //self.elRowNums = [];
             //self.elColHeads = [];
@@ -3887,7 +4213,7 @@
                 if (sheet.scrollRow) self.scrollToRow(sheet.scrollRow, true);
                 if (sheet.scrollCol) self.scrollToCol(sheet.scrollCol, true);
 
-                self.showPanel(sheet.firstRow, sheet.firstCol, sheet.lastRow, sheet.lastCol);
+                self.showSplitLine().initGridMerges().selectCellsAuto();
             });
 
             return self;

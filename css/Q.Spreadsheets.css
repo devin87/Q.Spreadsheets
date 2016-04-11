@@ -43,11 +43,17 @@ html { *overflow: hidden; }
 .ss-p-area { width: 100%; height: 100%; background-color: #637bd1; }
 .ss-p-resize { position: absolute; right: -5px; bottom: -5px; width: 7px; height: 7px; background-color: #217346; border: 1px solid #ffffff; font-size: 0; overflow: hidden; cursor: crosshair; }
 
-.ss-line-cols-active, .ss-line-rows-active { position: absolute; background-color: #217346; overflow: hidden; z-index: 10; }
-.ss-line-cols-active { height: 2px; }
-.ss-line-rows-active { width: 2px; }
+.ss-split-hline, .ss-line-cols-active, .ss-split-vline, .ss-line-rows-active { position: absolute; background-color: #ccc; overflow: hidden; z-index: 10; }
+
+.ss-split-hline, .ss-line-cols-active { height: 2px; }
+.ss-split-vline, .ss-line-rows-active { width: 2px; }
+
+.ss-line-cols-active, .ss-line-rows-active { background-color: #217346; }
 
 .ss-mark { position: absolute; z-index: 10; cursor: cell; }
+
+.ss-merges { position: relative; }
+.ss-merge { position: absolute; background-color: #fff; z-index: 5; }
 
 /* ------------------ ui.footbar ------------------ */
 .ss-footbar { background-color: #D8E6FC; padding-bottom: 1px; position: absolute; left: 0; bottom: 0; width: 100%; height: 24px; z-index: 10; font-size: 12px; }
