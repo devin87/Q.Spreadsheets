@@ -11,7 +11,7 @@
 ﻿/*
 * util.js
 * author:devin87@qq.com
-* update: 2015/11/26 14:28
+* update: 2016/04/11 15:35
 */
 (function (window, undefined) {
     "use strict";
@@ -35,7 +35,7 @@
 
         ops.width = 460;
 
-        return Q.alert('<span class="hot">' + text.toHtml() + '</span>', ops);
+        return Q.alert('<span class="hot">' + text.htmlEncode() + '</span>', ops);
     }
 
     //将数组或字符串的每一个字符转为map映射(值为true)
@@ -2472,7 +2472,7 @@
 
 ﻿/*
 * ui.grid.js 表格操作
-* update: 2016/04/01 17:15
+* update: 2016/04/12 11:58
 */
 (function (window, undefined) {
     "use strict";
@@ -2714,22 +2714,52 @@
                 self.scrollToRowAsync(row, false);
             });
 
+            var firstRow,
+                firstCol,
+                lastRow,
+                lastCol,
+
+                lineRow,
+                lineCol,
+
+                is_mousedown,
+                is_resize_row,
+                is_resize_col,
+                is_rightclick;
+
             //根据鼠标坐标获取单元格索引
             var get_cell_index = function (e) {
                 var offset = getOffset(elSheet),
                     left = e.clientX - offset.left,
                     top = e.clientY - offset.top;
 
-                return { row: self.findRow(top) + self.sheet.scrollRow, col: self.findCol(left) + self.sheet.scrollCol };
+                if (left > self.FIXED_WIDTH) left += self._scrollLeft;
+                if (top > self.FIXED_HEIGHT) top += self._scrollTop;
+
+                var row = self.findRow(top),
+                    col = self.findCol(left);
+
+                lineRow = lineCol = 0;
+
+                //判断是否正好处于行或列的起始位置
+                if (row == INFINITY_VALUE) {
+                    var colLeft = self.getColLeft(col);
+                    if (left == colLeft) lineCol = col;
+                    else if (left > colLeft) {
+                        if (left < colLeft + 5) lineCol = col;
+                        else if (left > self.getColLeft(col + 1) - 5) lineCol = col + 1;
+                    }
+                } else if (col == INFINITY_VALUE) {
+                    var rowTop = self.getRowTop(row);
+                    if (top == rowTop) lineRow = row;
+                    else if (top > rowTop) {
+                        if (top < rowTop + 5) lineRow = row;
+                        else if (top > self.getRowTop(row + 1) - 5) lineRow = row + 1;
+                    }
+                }
+
+                return { row: row, col: col };
             };
-
-            var firstRow,
-                firstCol,
-                lastRow,
-                lastCol,
-
-                is_mousedown,
-                is_rightclick;
 
             $(elSheet).on({
                 //鼠标中键滚轮事件
@@ -2752,15 +2782,30 @@
                     lastRow = firstRow = ci.row;
                     lastCol = firstCol = ci.col;
 
-                    self.selectCells(firstRow, firstCol);
+                    if (lineRow) {
+                        is_resize_row = true;
+                        self.showDragHLine(lineRow);
+                    } else if (lineCol) {
+                        is_resize_col = true;
+                        self.showDragVLine(lineCol);
+                    } else {
+                        self.selectCells(firstRow, firstCol);
+                    }
                 },
 
                 mousemove: function (e) {
                     var ci = get_cell_index(e),
                         row = ci.row,
-                        col = ci.col;
+                        col = ci.col,
+                        cursor = "cell";
 
-                    elMark.style.cursor = row == -1 || col == -1 ? "default" : "cell";
+                    if (row == INFINITY_VALUE || col == INFINITY_VALUE) {
+                        cursor = "default";
+                        if (lineRow) cursor = "n-resize";
+                        else if (lineCol) cursor = "e-resize";
+                    }
+
+                    elMark.style.cursor = cursor;
 
                     if (!is_mousedown || (row == lastRow && col == lastCol)) return;
 
@@ -2772,6 +2817,14 @@
 
                 mouseup: function (e) {
                     is_mousedown = false;
+
+                    if (is_resize_row) {
+                        is_resize_row = false;
+                        self.hideDragHLine();
+                    } else if (is_resize_col) {
+                        is_resize_col = false;
+                        self.hideDragVLine();
+                    }
 
                     var target = e.target;
                 },
@@ -3911,12 +3964,12 @@
 
         showSplitHLine: function (row) {
             var self = this,
-                elSplitHLine = self.SplitHLine;
+                elSplitHLine = self.elSplitHLine;
 
             if (!row) return self;
 
             if (!elSplitHLine) {
-                self.SplitHLine = elSplitHLine = createEle("div", "ss-split-hline");
+                self.elSplitHLine = elSplitHLine = createEle("div", "ss-split-hline");
                 self.elSheet.appendChild(elSplitHLine);
             }
 
@@ -3927,7 +3980,7 @@
         },
         showSplitVLine: function (col) {
             var self = this,
-                elSplitVLine = self.SplitVLine;
+                elSplitVLine = self.elSplitVLine;
 
             if (!col) return self;
 
@@ -3945,6 +3998,55 @@
             var self = this;
 
             return self.showSplitHLine(self._splitRow).showSplitVLine(self._splitCol);
+        },
+
+        showDragHLine: function (row) {
+            var self = this,
+                elDragHLine = self.elDragHLine;
+
+            if (!row) return self;
+
+            if (!elDragHLine) {
+                self.elDragHLine = elDragHLine = createEle("div", "ss-drag-hline");
+                self.elSheet.appendChild(elDragHLine);
+            }
+
+            elDragHLine.style.cssText = "left:0px;top:" + (self.getRowTop(row) - 1) + "px;width:" + self.GRID_WIDTH + "px;";
+
+            return self;
+
+        },
+        showDragVLine: function (col) {
+            var self = this,
+                elDragVLine = self.elDragVLine;
+
+            if (!col) return self;
+
+            if (!elDragVLine) {
+                self.elDragVLine = elDragVLine = createEle("div", "ss-drag-vline");
+                self.elSheet.appendChild(elDragVLine);
+            }
+
+            elDragVLine.style.cssText = "left:" + (self.getColLeft(col) - 1) + "px;top:0px;height:" + self.GRID_HEIGHT + "px;";
+
+            return self;
+        },
+
+        hideDragHLine: function () {
+            var self = this,
+                elDragHLine = self.elDragHLine;
+
+            if (elDragHLine) elDragHLine.style.display = "none";
+
+            return self;
+        },
+        hideDragVLine: function () {
+            var self = this,
+                elDragVLine = self.elDragVLine;
+
+            if (elDragVLine) elDragVLine.style.display = "none";
+
+            return self;
         },
 
         showPanel: function (firstRow, firstCol, lastRow, lastCol) {
@@ -4180,18 +4282,12 @@
             var self = this,
                 sheet = self.sheet;
 
+            //test
             extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 0, scrollCol: 0, firstRow: 1, firstCol: 4, lastRow: 6, lastCol: 5, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 }, merges: [[1, 1, 3, 2], [4, 5, 8, 6]] }, true);
 
-            //self.elRowNums = [];
-            //self.elColHeads = [];
-            //self.elCells = [];
+            //sheet.isFreeze = false;
 
             self.updateGridSettings().updateColsOffset().updateRowsOffset().updateGridSize();
-
-            //var d1 = Date.now();
-            //self.drawCells();
-            //var d2 = Date.now();
-            //Q.alert(d2 - d1);
 
             async(function () {
                 var d1 = Date.now();
@@ -4205,7 +4301,7 @@
                     elHScroll = self.elHScroll;
 
                 if (elVScroll) elVScroll.scrollTop = 1;
-                if (elHScroll) elHScroll.scrollTop = 1;
+                if (elHScroll) elHScroll.scrollLeft = 1;
 
                 self.loaded = true;
 

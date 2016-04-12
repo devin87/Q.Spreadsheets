@@ -3,7 +3,7 @@
 /*
 * util.js
 * author:devin87@qq.com
-* update: 2015/11/26 14:28
+* update: 2016/04/11 15:35
 */
 (function (window, undefined) {
     "use strict";
@@ -27,7 +27,7 @@
 
         ops.width = 460;
 
-        return Q.alert('<span class="hot">' + text.toHtml() + '</span>', ops);
+        return Q.alert('<span class="hot">' + text.htmlEncode() + '</span>', ops);
     }
 
     //将数组或字符串的每一个字符转为map映射(值为true)

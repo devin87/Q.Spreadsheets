@@ -48,6 +48,10 @@ html { *overflow: hidden; }
 .ss-split-hline, .ss-line-cols-active { height: 2px; }
 .ss-split-vline, .ss-line-rows-active { width: 2px; }
 
+.ss-drag-hline, .ss-drag-vline { position: absolute; background-color: #999; overflow: hidden; z-index: 12; }
+.ss-drag-hline { height: 1px; }
+.ss-drag-vline { width: 1px; }
+
 .ss-line-cols-active, .ss-line-rows-active { background-color: #217346; }
 
 .ss-mark { position: absolute; z-index: 10; cursor: cell; }
