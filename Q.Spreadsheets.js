@@ -2472,7 +2472,7 @@
 
 ﻿/*
 * ui.grid.js 表格操作
-* update: 2016/04/12 11:58
+* update: 2016/04/13 15:20
 */
 (function (window, undefined) {
     "use strict";
@@ -2480,6 +2480,9 @@
     var extend = Q.extend,
         async = Q.async,
         fire = Q.fire,
+
+        isUInt = Q.isUInt,
+        isUNum = Q.isUNum,
 
         toMap = Q.toMap,
 
@@ -2625,6 +2628,7 @@
     }
 
     UI.extend({
+        //初始化表格
         initGrid: function () {
             var self = this,
                 workbook = self.workbook;
@@ -2670,6 +2674,7 @@
             return self.initGridSize().initGridEvent();
         },
 
+        //初始化表格大小
         initGridSize: function () {
             var self = this,
 
@@ -2692,6 +2697,7 @@
             return self;
         },
 
+        //初始化表格事件
         initGridEvent: function () {
             var self = this,
 
@@ -2714,7 +2720,10 @@
                 self.scrollToRowAsync(row, false);
             });
 
-            var firstRow,
+            var startX,
+                startY,
+
+                firstRow,
                 firstCol,
                 lastRow,
                 lastCol,
@@ -2722,16 +2731,23 @@
                 lineRow,
                 lineCol,
 
+                startWidth,
+                startHeight,
+                startTop,
+                startLeft,
+                moveX,
+                moveY,
+
                 is_mousedown,
                 is_resize_row,
                 is_resize_col,
                 is_rightclick;
 
             //根据鼠标坐标获取单元格索引
-            var get_cell_index = function (e) {
+            var get_cell_index = function (x, y) {
                 var offset = getOffset(elSheet),
-                    left = e.clientX - offset.left,
-                    top = e.clientY - offset.top;
+                    left = x - offset.left,
+                    top = y - offset.top;
 
                 if (left > self.FIXED_WIDTH) left += self._scrollLeft;
                 if (top > self.FIXED_HEIGHT) top += self._scrollTop;
@@ -2739,22 +2755,24 @@
                 var row = self.findRow(top),
                     col = self.findCol(left);
 
-                lineRow = lineCol = 0;
+                if (!is_resize_row && !is_resize_col) {
+                    lineRow = lineCol = 0;
 
-                //判断是否正好处于行或列的起始位置
-                if (row == INFINITY_VALUE) {
-                    var colLeft = self.getColLeft(col);
-                    if (left == colLeft) lineCol = col;
-                    else if (left > colLeft) {
-                        if (left < colLeft + 5) lineCol = col;
-                        else if (left > self.getColLeft(col + 1) - 5) lineCol = col + 1;
-                    }
-                } else if (col == INFINITY_VALUE) {
-                    var rowTop = self.getRowTop(row);
-                    if (top == rowTop) lineRow = row;
-                    else if (top > rowTop) {
-                        if (top < rowTop + 5) lineRow = row;
-                        else if (top > self.getRowTop(row + 1) - 5) lineRow = row + 1;
+                    //判断是否正好处于行或列的起始位置
+                    if (row == INFINITY_VALUE) {
+                        var colLeft = self.getColLeft(col);
+                        if (left == colLeft) lineCol = col;
+                        else if (left > colLeft) {
+                            if (left < colLeft + 5) lineCol = col;
+                            else if (left > self.getColLeft(col + 1) - 5) lineCol = col + 1;
+                        }
+                    } else if (col == INFINITY_VALUE) {
+                        var rowTop = self.getRowTop(row);
+                        if (top == rowTop) lineRow = row;
+                        else if (top > rowTop) {
+                            if (top < rowTop + 5) lineRow = row;
+                            else if (top > self.getRowTop(row + 1) - 5) lineRow = row + 1;
+                        }
                     }
                 }
 
@@ -2777,24 +2795,35 @@
 
                     is_mousedown = true;
                     is_rightclick = e.which == 3 || e.button == 2;   //是否右键菜单
+                    startX = e.clientX;
+                    startY = e.clientY;
 
-                    var ci = get_cell_index(e);
+                    var ci = get_cell_index(startX, startY);
                     lastRow = firstRow = ci.row;
                     lastCol = firstCol = ci.col;
 
                     if (lineRow) {
                         is_resize_row = true;
                         self.showDragHLine(lineRow);
+
+                        startHeight = self.getRowHeight(lineRow - 1);
+                        startTop = self.getRowTop(lineRow) - 1;
                     } else if (lineCol) {
                         is_resize_col = true;
                         self.showDragVLine(lineCol);
+
+                        startWidth = self.getColWidth(lineCol - 1);
+                        startLeft = self.getColLeft(lineCol) - 1;
                     } else {
                         self.selectCells(firstRow, firstCol);
                     }
                 },
 
                 mousemove: function (e) {
-                    var ci = get_cell_index(e),
+                    var x = e.clientX,
+                        y = e.clientY,
+
+                        ci = get_cell_index(x, y),
                         row = ci.row,
                         col = ci.col,
                         cursor = "cell";
@@ -2807,12 +2836,24 @@
 
                     elMark.style.cursor = cursor;
 
-                    if (!is_mousedown || (row == lastRow && col == lastCol)) return;
+                    if (is_resize_row) {
+                        moveY = y - startY;
+                        if (startHeight + moveY < 2) moveY = 2 - startHeight;
 
-                    lastRow = row;
-                    lastCol = col;
+                        self.elDragHLine.style.top = (startTop + moveY) + "px";
+                    } else if (is_resize_col) {
+                        moveX = x - startX;
+                        if (startWidth + moveX < 2) moveX = 2 - startWidth;
 
-                    self.selectCells(firstRow, firstCol, lastRow, lastCol);
+                        self.elDragVLine.style.left = (startLeft + moveX) + "px";
+                    } else {
+                        if (!is_mousedown || (row == lastRow && col == lastCol)) return;
+
+                        lastRow = row;
+                        lastCol = col;
+
+                        self.selectCells(firstRow, firstCol, lastRow, lastCol);
+                    }
                 },
 
                 mouseup: function (e) {
@@ -2821,9 +2862,13 @@
                     if (is_resize_row) {
                         is_resize_row = false;
                         self.hideDragHLine();
+
+                        self.updateRowHeight(lineRow - 1, startHeight + moveY);
                     } else if (is_resize_col) {
                         is_resize_col = false;
                         self.hideDragVLine();
+
+                        self.updateColWidth(lineCol - 1, startWidth + moveX);
                     }
 
                     var target = e.target;
@@ -2841,6 +2886,7 @@
             return this.initGridSize().drawSheet();
         },
 
+        //更新列偏移数据
         updateColsOffset: function () {
             var self = this,
                 sheet = self.sheet,
@@ -2867,7 +2913,7 @@
                 var col = +key;
                 list_col_width_index.push(col);
 
-                offset_width += map_col_width[key];
+                offset_width += +map_col_width[key] || 0;
                 list_col_width_offset.push(offset_width);
 
                 if (i == 0) {
@@ -2895,6 +2941,7 @@
 
             return self;
         },
+        //更新行偏移数据
         updateRowsOffset: function () {
             var self = this,
                 sheet = self.sheet,
@@ -2921,7 +2968,7 @@
                 var row = +key;
                 list_row_height_index.push(row);
 
-                offset_height += map_row_height[key];
+                offset_height += +map_row_height[key] || 0;
                 list_row_height_offset.push(offset_height);
 
                 if (i == 0) {
@@ -2950,6 +2997,7 @@
             return self;
         },
 
+        //获取列偏移
         getColLeft: function (col) {
             var self = this,
                 value = self._colOffsets[col];
@@ -2960,6 +3008,7 @@
 
             return value;
         },
+        //获取行偏移
         getRowTop: function (row) {
             var self = this,
                 value = self._rowOffsets[row];
@@ -2971,6 +3020,7 @@
             return value;
         },
 
+        //获取单元格元素实际左边距
         getCellLeft: function (col) {
             var self = this,
                 left = self.getColLeft(col);
@@ -2982,6 +3032,7 @@
             //return this.getColLeft(col);
         },
 
+        //获取单元格元素实际上边距
         getCellTop: function (row) {
             var self = this,
                 top = self.getRowTop(row);
@@ -2993,70 +3044,135 @@
             //return this.getRowTop(row);
         },
 
+        //获取列宽
         getColWidth: function (col) {
-            return this.sheet.colWidths[col] || this._colWidth;
+            var w = this.sheet.colWidths[col];
+            return w != undefined ? w || 0 : this._colWidth;
         },
 
+        //获取列宽度（多列）
         getColsWidth: function (firstCol, lastCol) {
             return firstCol != lastCol ? this.getColLeft(lastCol + 1) - this.getColLeft(firstCol) : this.getColWidth(firstCol);
         },
 
+        //获取行高
         getRowHeight: function (row) {
-            return this.sheet.rowHeights[row] || this._rowHeight;
+            var h = this.sheet.rowHeights[row];
+            return h != undefined ? h || 0 : this._rowHeight;
         },
 
+        //获取行高度（多行）
         getRowsHeight: function (firstRow, lastRow) {
             return firstRow != lastRow ? this.getRowTop(lastRow + 1) - this.getRowTop(firstRow) : this.getRowHeight(firstRow);
         },
 
+        //根据偏移查找所知行
         findRow: function (top) {
             var self = this;
 
             return findCellIndex(self._rowTops, self._rowTopIndexs, self._rowHeight, top - self._colHeadHeight);
         },
 
+        //根据偏移查找所知列
         findCol: function (left) {
             var self = this;
 
             return findCellIndex(self._colLefts, self._colLeftIndexs, self._colWidth, left - self._rowNumWidth);
         },
 
-        setColWidth: function (col, width) {
+        //更改列宽
+        updateColWidth: function (col, width) {
             var self = this,
                 sheet = self.sheet,
                 splitCol = self._splitCol;
+
+            if (!isUInt(col) || !isUNum(width)) return self;
 
             sheet.colWidths[col] = width;
 
             self.updateColsOffset();
 
-            if (col < splitCol) elGrid3.style.width = elGrid1.style.width = self.getColLeft(splitCol) + "px";
+            if (col < splitCol) self.updateGridSize().showSplitVLine(splitCol);
 
+            var updateEl = function (list) {
+                var el = list[col];
+                if (el) {
+                    el.style.width = width + "px";
+                    getFirst(el).style.width = (width - 1) + "px";
+                }
 
+                for (var i = col + 1, len = list.length; i < len; i++) {
+                    el = list[i];
+                    if (el) el.style.left = self.getCellLeft(i) + "px";
+                }
+            };
+
+            updateEl(self.elColHeads);
+            self.elCells.forEach(updateEl);
+
+            return self.drawMerges().selectCellsAuto().updateHScrollWidth();
         },
 
-        setRowHeight: function (row, height) {
+        //更改行高
+        updateRowHeight: function (row, height) {
+            var self = this,
+                sheet = self.sheet,
+                splitRow = self._splitRow;
 
+            if (!isUInt(row) || !isUNum(height)) return self;
+
+            sheet.rowHeights[row] = height;
+
+            self.updateRowsOffset();
+
+            if (row < splitRow) self.updateGridSize().showSplitHLine(splitRow);
+
+            var elRowNums = self.elRowNums,
+                elCells = self.elCells;
+
+            for (var i = row, len = elRowNums.length; i < len; i++) {
+                var elSSRowLeft = self.getElSSRowLeft(i),
+                    elSSRowRight = self.getElSSRowRight(i);
+
+                if (i == row) {
+                    if (elSSRowLeft) elSSRowRight.style.height = elSSRowLeft.style.height = height + "px";
+
+                    var cssInnerHeight = (height - 1) + "px";
+                    if (elRowNums[i]) getFirst(elRowNums[i]).style.height = cssInnerHeight;
+                    elCells[i].forEach(function (el, j) {
+                        if (el) getFirst(el).style.height = cssInnerHeight;
+                    });
+                } else {
+                    if (elSSRowLeft) elSSRowRight.style.top = elSSRowLeft.style.top = self.getCellTop(i) + "px";
+                }
+            }
+
+            return self.drawMerges().selectCellsAuto().updateVScrollHeight();
         },
 
+        //获取所有单元格宽度
         getTotalWidth: function () {
             return this.getColsWidth(0, this._maxCol + 1);
         },
 
+        //获取所有单元格高度
         getTotalHeight: function () {
             return this.getRowsHeight(0, this._maxRow + 1);
         },
 
+        //获取水平滚动条宽度
         getHScrollWidth: function () {
             var self = this;
             return self._HScrollbarWidth + self.getColsWidth(self._splitCol, self._maxCol + 1) - self.SCROLL_WIDTH;
         },
 
+        //获取垂直滚动条高度
         getVScrollHeight: function () {
             var self = this;
             return self._VScrollbarHeight + self.getRowsHeight(self._splitRow, self._maxRow + 1) - self.SCROLL_HEIGHT;
         },
 
+        //更新水平滚动条宽度
         updateHScrollWidth: function () {
             var self = this,
                 elHScroll = self.elHScroll;
@@ -3066,6 +3182,7 @@
             return self;
         },
 
+        //更新垂直滚动条高度
         updateVScrollHeight: function () {
             var self = this,
                 elVScroll = self.elVScroll;
@@ -3081,6 +3198,7 @@
             return self;
         },
 
+        //更新表格设置
         updateGridSettings: function () {
             var self = this,
                 sheet = self.sheet,
@@ -3125,6 +3243,7 @@
             return self;
         },
 
+        //更新合并单元格数据
         updateGridMerges: function () {
             var self = this,
                 sheet = self.sheet,
@@ -3145,6 +3264,7 @@
             return self;
         },
 
+        //获取合并单元格数据
         getMergeData: function (row, col) {
             //INFINITY_VALUE 表示整行或整列
             var mapMerge = this.mapMerge,
@@ -3153,6 +3273,11 @@
             return mapRow ? mapRow[INFINITY_VALUE] || mapRow[col] : undefined;
         },
 
+        //获取合并状态
+        //RANGE_NO_MERGE : 非合并区域
+        //RANGE_IS_MERGE : 合并区域
+        //RANGE_IS_MERGE_FIRST: 合并区域中的第一个单元格
+        //RANGE_IS_MERGE_OTHER: 合并区域中的其它单元格
         getMergeState: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
                 data = self.getMergeData(firstRow, firstCol);
@@ -3165,7 +3290,8 @@
             return isFirst ? RANGE_IS_MERGE_FIRST : RANGE_IS_MERGE_OTHER;
         },
 
-        isMerge: function (firstRow, firstCol, lastRow, lastCol) {
+        //是否是合并单元格
+        isMergeCell: function (firstRow, firstCol, lastRow, lastCol) {
             return this.getMergeState(firstRow, firstCol, lastRow, lastCol) == RANGE_IS_MERGE;
         },
 
@@ -3207,17 +3333,12 @@
             return computeRange(this.sheet.merges, firstRow, firstCol, lastRow, lastCol);
         },
 
-        _mergeCells2: function (firstRow, firstCol, lastRow, lastCol) {
-            var self = this,
-                list_merge_cell = [];
-
-            self.showPanel();
-        },
-
+        //获取合并单元格元素
         getElMerges: function (data) {
             return self.mapElMerges[data.join("_")];
         },
 
+        //合并单元格 data => [firstRow, firstCol, lastRow, lastCol]
         _mergeCells: function (data) {
             var self = this,
 
@@ -3273,10 +3394,25 @@
             return self;
         },
 
+        //合并单元格
         mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
             return this._mergeCells([firstRow, firstCol, lastRow, lastCol]);
         },
 
+        //绘制合并单元格
+        drawMerges: function (list) {
+            var self = this;
+            self.elMerges4.innerHTML = self.elMerges3.innerHTML = self.elMerges2.innerHTML = self.elMerges1.innerHTML = "";
+
+            self.mapElMerges = {};
+            (list || self.sheet.merges).forEach(function (data) {
+                self._mergeCells(data);
+            });
+
+            return self;
+        },
+
+        //初始化合并单元格
         initGridMerges: function () {
             var self = this,
                 sheet = self.sheet;
@@ -3296,17 +3432,10 @@
             self.elMerges3 = elMerges3;
             self.elMerges4 = elMerges4;
 
-            self.updateGridMerges();
-
-            self.mapElMerges = {};
-
-            sheet.merges.forEach(function (data) {
-                self._mergeCells(data);
-            });
-
-            return self;
+            return self.updateGridMerges().drawMerges();
         },
 
+        //更新表格大小
         updateGridSize: function () {
             var self = this,
 
@@ -3363,24 +3492,30 @@
             return self;
         },
 
+        //获取行号元素(.ss-rowNum)
         getElRowNum: function (row) {
             return this.elRowNums[row];
         },
+        //获取列头元素(.ss-colHead)
         getElColHead: function (col) {
             return this.elColHeads[col];
         },
+        //获取整行单元格元素(.ss-cell)
         getElRowCells: function (row) {
             return this.elCells[row];
         },
+        //获取单元格元素(.ss-cell)
         getElCell: function (row, col) {
             var elRowCells = this.getElRowCells(row);
             return elRowCells ? elRowCells[col] : undefined;
         },
 
+        //获取左边行元素(.ss-grid3 .ss-row)
         getElSSRowLeft: function (row) {
             var elRowNum = this.getElRowNum(row);
             if (elRowNum) return elRowNum.parentNode;
         },
+        //获取右边行元素(.ss-grid4 .ss-row)
         getElSSRowRight: function (row) {
             var elRowCells = this.getElRowCells(row);
             if (elRowCells) {
@@ -3445,6 +3580,7 @@
             };
         },
 
+        //绘制行
         drawRows: function (firstRow, lastRow) {
             var self = this,
                 sheet = self.sheet,
@@ -3526,6 +3662,7 @@
             return self;
         },
 
+        //绘制列
         drawCols: function (firstCol, lastCol) {
             var self = this,
                 sheet = self.sheet,
@@ -3600,6 +3737,7 @@
             return self;
         },
 
+        //更新元素缓存
         updateElCache: function () {
             var self = this,
 
@@ -3675,6 +3813,7 @@
             return self;
         },
 
+        //设置行号
         setRowNum: function (row) {
             var el = this.getElRowNum(row), node;
             if (el) {
@@ -3724,6 +3863,7 @@
             return self;
         },
 
+        //滚动到行
         scrollToRow: function (relRow, isUpdateScrollbar) {
             if (relRow < 0) relRow = 0;
 
@@ -3815,6 +3955,7 @@
 
             return self;
         },
+        //滚动到列
         scrollToCol: function (relCol, isUpdateScrollbar) {
             if (relCol < 0) relCol = 0;
 
@@ -3907,6 +4048,7 @@
             return self;
         },
 
+        //滚动到行（异步）
         scrollToRowAsync: function (row, isUpdateScrollbar, callback) {
             var self = this;
 
@@ -3917,6 +4059,7 @@
 
             return self;
         },
+        //滚动到列（异步）
         scrollToColAsync: function (col, isUpdateScrollbar, callback) {
             var self = this;
 
@@ -3928,6 +4071,7 @@
             return self;
         },
 
+        //选中列高亮
         activeColHeads: function (firstCol, lastCol) {
             var self = this;
 
@@ -3936,6 +4080,7 @@
             return self;
         },
 
+        //选中行高亮
         activeRowNums: function (firstRow, lastRow) {
             var self = this;
 
@@ -3962,6 +4107,7 @@
         //    return self;
         //},
 
+        //显示行分隔线
         showSplitHLine: function (row) {
             var self = this,
                 elSplitHLine = self.elSplitHLine;
@@ -3978,6 +4124,7 @@
             return self;
 
         },
+        //显示列分隔线
         showSplitVLine: function (col) {
             var self = this,
                 elSplitVLine = self.elSplitVLine;
@@ -3994,12 +4141,14 @@
             return self;
         },
 
+        //显示分隔线（行列）
         showSplitLine: function () {
             var self = this;
 
             return self.showSplitHLine(self._splitRow).showSplitVLine(self._splitCol);
         },
 
+        //显示行拖拽线
         showDragHLine: function (row) {
             var self = this,
                 elDragHLine = self.elDragHLine;
@@ -4016,6 +4165,7 @@
             return self;
 
         },
+        //显示列拖拽线
         showDragVLine: function (col) {
             var self = this,
                 elDragVLine = self.elDragVLine;
@@ -4032,6 +4182,7 @@
             return self;
         },
 
+        //隐藏行拖拽线
         hideDragHLine: function () {
             var self = this,
                 elDragHLine = self.elDragHLine;
@@ -4040,6 +4191,7 @@
 
             return self;
         },
+        //隐藏列拖拽线
         hideDragVLine: function () {
             var self = this,
                 elDragVLine = self.elDragVLine;
@@ -4049,6 +4201,7 @@
             return self;
         },
 
+        //显示选择面板
         showPanel: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
 
@@ -4122,6 +4275,7 @@
             return self;
         },
 
+        //选择单元格并显示选择面板
         selectCells: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
                 sheet = self.sheet,
@@ -4158,7 +4312,7 @@
                 lastRow = range[2];
                 lastCol = range[3];
 
-                isSelectOne = self.isMerge(firstRow, firstCol, lastRow, lastCol);
+                isSelectOne = self.isMergeCell(firstRow, firstCol, lastRow, lastCol);
             }
 
             self._isSelectOne = isSelectOne;
@@ -4173,6 +4327,7 @@
             return self;
         },
 
+        //选择单元格
         selectCellsAuto: function () {
             var self = this,
                 sheet = self.sheet;
@@ -4180,6 +4335,7 @@
             return self.selectCells(sheet.firstRow, sheet.firstCol, sheet.lastRow, sheet.lastCol);
         },
 
+        //绘制单元格
         drawCells: function () {
             var self = this,
                 sheet = self.sheet,
@@ -4278,6 +4434,7 @@
             return self.fillCells(draw_first_row, draw_first_col, draw_last_row, draw_last_col);
         },
 
+        //绘制表格
         drawSheet: function () {
             var self = this,
                 sheet = self.sheet;
