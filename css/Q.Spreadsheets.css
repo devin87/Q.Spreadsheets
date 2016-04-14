@@ -43,18 +43,21 @@ html { *overflow: hidden; }
 .ss-p-area { width: 100%; height: 100%; background-color: #637bd1; }
 .ss-p-resize { position: absolute; right: -5px; bottom: -5px; width: 7px; height: 7px; background-color: #217346; border: 1px solid #ffffff; font-size: 0; overflow: hidden; cursor: crosshair; }
 
-.ss-split-hline, .ss-line-cols-active, .ss-split-vline, .ss-line-rows-active { position: absolute; background-color: #ccc; overflow: hidden; z-index: 10; }
+.ss-one .ss-p-area { display: none; }
+
+.ss-split-hline, .ss-line-cols-active, .ss-split-vline, .ss-line-rows-active { position: absolute; overflow: hidden; z-index: 10; }
+
+.ss-split-hline, .ss-split-vline { background-color: #dadfe8; }
+.ss-line-cols-active, .ss-line-rows-active { background-color: #217346; }
 
 .ss-split-hline, .ss-line-cols-active { height: 2px; }
 .ss-split-vline, .ss-line-rows-active { width: 2px; }
 
-.ss-drag-hline, .ss-drag-vline { position: absolute; background-color: #999; overflow: hidden; z-index: 12; }
+.ss-drag-hline, .ss-drag-vline { position: absolute; background-color: #888; overflow: hidden; z-index: 12; }
 .ss-drag-hline { height: 1px; }
 .ss-drag-vline { width: 1px; }
 
-.ss-line-cols-active, .ss-line-rows-active { background-color: #217346; }
-
-.ss-mark { position: absolute; z-index: 10; cursor: cell; }
+.ss-mark { position: absolute; z-index: 30; cursor: cell; }
 
 .ss-merges { position: relative; }
 .ss-merge { position: absolute; background-color: #fff; z-index: 5; }

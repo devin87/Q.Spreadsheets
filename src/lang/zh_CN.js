@@ -38,5 +38,52 @@
     OPERATE_ERROR: "操作错误!",
 
     CANCEL_HIDDEN_SHEETS: "取消隐藏的工作表：",
-    INPUT_SHEET_NAME: "请输入工作表名称："
+    INPUT_SHEET_NAME: "请输入工作表名称：",
+
+    MENU_CUT: "剪切",
+    MENU_COPY: "复制",
+    MENU_PASTE: "粘贴",
+    MENU_SELECT_PASTE: "选择性粘贴",
+    MENU_PASTE_VALUE: "仅粘贴值",
+    MENU_PASTE_FORMAT: "仅粘贴格式",
+    MENU_PASTE_FORMUAL: "仅粘贴公式",
+    MENU_PASTE_STYLE: "仅粘贴样式",
+    MENU_PASTE_ALL_NOT_BORDER: "除边框外的所有内容",
+
+    MENU_INSERT_AUTO: "插入",
+    MENU_INSERT: "插入",
+    MENU_INSERT_ROW: "插入整行",
+    MENU_INSERT_COL: "插入整列",
+    MENU_CELLS_TO_RIGHT: "活动单元格右移",
+    MENU_CELLS_TO_DOWN: "活动单元格下移",
+
+    MENU_INSERT_PASTED_CELLS: "插入复制的单元格",
+
+    MENU_DELETE_AUTO: "删除",
+    MENU_DELETE: "删除",
+    MENU_DELETE_ROW: "删除整行",
+    MENU_DELETE_COL: "删除整列",
+    MENU_CELLS_TO_LEFT: "右侧单元格左移",
+    MENU_CELLS_TO_UP: "下方单元格上移",
+
+    MENU_CLEAR: "清除",
+    MENU_CLEAR_CONTENT: "清除内容",
+    MENU_CLEAR_FORMAT: "清除格式",
+    MENU_CLEAR_STYLE: "清除样式",
+
+    MENU_MERGE_CELLS: "合并单元格",
+    MENU_SPLIT_CELLS: "拆分单元格",
+
+    MENU_INSERT_COMMENT: "插入批注",
+    MENU_SET_FORMAT: "设置单元格格式",
+    MENU_NAME_RANGE: "命名此区域",
+
+    MENU_FILTER: "筛选",
+    MENU_SORT: "排序",
+    MENU_SORT_ASC: "升序",
+    MENU_SORT_DESC: "降序",
+    MENU_SORT_CUSTOM: "自定义排序",
+
+    MENU_INSERT_LINK: "超链接",
+    MENU_DELETE_LINK: "删除超链接"
 };

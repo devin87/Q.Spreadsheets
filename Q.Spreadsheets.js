@@ -2502,7 +2502,7 @@
 
         SS = Q.SS,
         ERROR = SS.ERROR,
-        Lang = SS.Lang,
+        Lang = Q.SSLang,
         UI = SS.UI,
 
         getColName = SS.getColName,
@@ -2521,6 +2521,58 @@
         RANGE_IS_MERGE = 0,            //合并区域
         RANGE_IS_MERGE_FIRST = 1,      //合并区域中的第一个单元格
         RANGE_IS_MERGE_OTHER = 2;      //合并区域中的其它单元格
+
+    var MENU_CUT = 1,
+        MENU_COPY = 2,
+        MENU_PASTE = 3,
+        MENU_SELECT_PASTE = 4,
+        MENU_PASTE_VALUE = 5,
+        MENU_PASTE_FORMAT = 6,
+        MENU_PASTE_FORMUAL = 7,
+        MENU_PASTE_STYLE = 8,
+        MENU_PASTE_ALL_NOT_BORDER = 9,
+        MENU_SPLIT1 = 38,
+
+        MENU_INSERT = 10,
+        MENU_INSERT_AUTO = 11,
+        MENU_INSERT_ROW = 12,
+        MENU_INSERT_COL = 13,
+        MENU_CELLS_TO_RIGHT = 14,
+        MENU_CELLS_TO_DOWN = 15,
+
+        MENU_INSERT_PASTED_CELLS = 16,
+
+        MENU_DELETE = 17,
+        MENU_DELETE_AUTO = 18,
+        MENU_DELETE_ROW = 19,
+        MENU_DELETE_COL = 20,
+        MENU_CELLS_TO_LEFT = 21,
+        MENU_CELLS_TO_UP = 22,
+
+        MENU_CLEAR = 44,
+        MENU_CLEAR_CONTENT = 25,
+        MENU_CLEAR_FORMAT = 26,
+        MENU_CLEAR_STYLE = 27,
+        MENU_SPLIT2 = 39,
+
+        MENU_MERGE_CELLS = 23,
+        MENU_SPLIT_CELLS = 24,
+        MENU_SPLIT3 = 40,
+
+        MENU_INSERT_COMMENT = 28,
+        MENU_SET_FORMAT = 29,
+        MENU_NAME_RANGE = 30,
+        MENU_SPLIT5 = 42,
+
+        MENU_FILTER = 31,
+        MENU_SORT = 32,
+        MENU_SORT_ASC = 33,
+        MENU_SORT_DESC = 34,
+        MENU_SORT_CUSTOM = 35,
+        MENU_SPLIT6 = 43,
+
+        MENU_INSERT_LINK = 36,
+        MENU_DELETE_LINK = 37;
 
     function log(msg) {
         //if (window.console) console.log.apply(console, arguments);
@@ -2794,7 +2846,7 @@
                     if (target == elVScroll) return;
 
                     is_mousedown = true;
-                    is_rightclick = e.which == 3 || e.button == 2;   //是否右键菜单
+                    is_rightclick = e.rightClick;   //是否右键菜单
                     startX = e.clientX;
                     startY = e.clientY;
 
@@ -2815,6 +2867,11 @@
                         startWidth = self.getColWidth(lineCol - 1);
                         startLeft = self.getColLeft(lineCol) - 1;
                     } else {
+                        if (is_rightclick && self.isInSelectCells(firstRow, firstCol)) {
+                            //self.showContextMenu(startX, startY);
+                            return false;
+                        }
+
                         self.selectCells(firstRow, firstCol);
                     }
                 },
@@ -2870,14 +2927,187 @@
 
                         self.updateColWidth(lineCol - 1, startWidth + moveX);
                     }
-
-                    var target = e.target;
                 },
-
                 contextmenu: function (e) {
+                    self.showContextMenu(e.clientX, e.clientY);
                     return false;
                 }
             });
+
+            return self;
+        },
+
+        //显示单元格右键菜单
+        showContextMenu: function (x, y) {
+            var self = this,
+                menu = self._menuCells;
+
+            if (!menu) {
+                self._menuCells = menu = new ContextMenu(Q.processMenuWidth({
+                    width: 180,
+                    items: [
+                        { id: MENU_CUT, text: Lang.MENU_CUT },
+                        { id: MENU_COPY, text: Lang.MENU_COPY },
+                        { id: MENU_PASTE, text: Lang.MENU_PASTE },
+                        {
+                            id: MENU_SELECT_PASTE,
+                            text: Lang.MENU_SELECT_PASTE,
+                            group: {
+                                width: 140,
+                                items: [
+                                    { id: MENU_PASTE_VALUE, text: Lang.MENU_PASTE_VALUE },
+                                    { id: MENU_PASTE_FORMAT, text: Lang.MENU_PASTE_FORMAT },
+                                    { id: MENU_PASTE_FORMUAL, text: Lang.MENU_PASTE_FORMUAL },
+                                    { id: MENU_PASTE_STYLE, text: Lang.MENU_PASTE_STYLE },
+                                    { id: MENU_PASTE_ALL_NOT_BORDER, text: Lang.MENU_PASTE_ALL_NOT_BORDER }
+                                ]
+                            }
+                        },
+                        { id: MENU_SPLIT1, split: true },
+
+                        { id: MENU_INSERT_AUTO, text: Lang.MENU_INSERT_AUTO },
+                        {
+                            id: MENU_INSERT,
+                            text: Lang.MENU_INSERT,
+                            group: {
+                                width: 140,
+                                items: [
+                                    { id: MENU_INSERT_ROW, text: Lang.MENU_INSERT_ROW },
+                                    { id: MENU_INSERT_COL, text: Lang.MENU_INSERT_COL },
+                                    { id: MENU_CELLS_TO_RIGHT, text: Lang.MENU_CELLS_TO_RIGHT },
+                                    { id: MENU_CELLS_TO_DOWN, text: Lang.MENU_CELLS_TO_DOWN }
+                                ]
+                            }
+                        },
+                        { id: MENU_INSERT_PASTED_CELLS, text: Lang.MENU_INSERT_PASTED_CELLS },
+                        { id: MENU_DELETE_AUTO, text: Lang.MENU_DELETE_AUTO },
+                        {
+                            id: MENU_DELETE,
+                            text: Lang.MENU_DELETE,
+                            group: {
+                                width: 140,
+                                items: [
+                                    { id: MENU_DELETE_ROW, text: Lang.MENU_DELETE_ROW },
+                                    { id: MENU_DELETE_COL, text: Lang.MENU_DELETE_COL },
+                                    { id: MENU_CELLS_TO_LEFT, text: Lang.MENU_CELLS_TO_LEFT },
+                                    { id: MENU_CELLS_TO_UP, text: Lang.MENU_CELLS_TO_UP }
+                                ]
+                            }
+                        },
+                        {
+                            id: MENU_CLEAR,
+                            text: Lang.MENU_CLEAR,
+                            group: {
+                                width: 140,
+                                items: [
+                                    { id: MENU_CLEAR_CONTENT, text: Lang.MENU_CLEAR_CONTENT },
+                                    { id: MENU_CLEAR_FORMAT, text: Lang.MENU_CLEAR_FORMAT },
+                                    { id: MENU_CLEAR_STYLE, text: Lang.MENU_CLEAR_STYLE }
+                                ]
+                            }
+                        },
+                        { id: MENU_SPLIT2, split: true },
+
+                        { id: MENU_MERGE_CELLS, text: Lang.MENU_MERGE_CELLS },
+                        { id: MENU_SPLIT_CELLS, text: Lang.MENU_SPLIT_CELLS },
+                        { id: MENU_SPLIT3, split: true },
+
+                        //{ id: MENU_CLEAR_CONTENT, text: Lang.MENU_CLEAR_CONTENT },
+                        //{ id: MENU_CLEAR_FORMAT, text: Lang.MENU_CLEAR_FORMAT },
+                        //{ id: MENU_CLEAR_STYLE, text: Lang.MENU_CLEAR_STYLE },
+                        //{ id: MENU_SPLIT4, split: true },
+
+                        { id: MENU_INSERT_COMMENT, text: Lang.MENU_INSERT_COMMENT },
+                        { id: MENU_SET_FORMAT, text: Lang.MENU_SET_FORMAT },
+                        { id: MENU_NAME_RANGE, text: Lang.MENU_NAME_RANGE },
+                        { id: MENU_SPLIT5, split: true },
+
+                        { id: MENU_FILTER, text: Lang.MENU_FILTER },
+                        {
+                            id: MENU_SORT,
+                            text: Lang.MENU_SORT,
+                            group: {
+                                width: 140,
+                                items: [
+                                    { id: MENU_SORT_ASC, text: Lang.MENU_SORT_ASC },
+                                    { id: MENU_SORT_DESC, text: Lang.MENU_SORT_DESC },
+                                    { id: MENU_SORT_CUSTOM, text: Lang.MENU_SORT_CUSTOM },
+                                ]
+                            }
+                        },
+                        { id: MENU_SPLIT6, split: true },
+
+                        { id: MENU_INSERT_LINK, text: Lang.MENU_INSERT_LINK },
+                        { id: MENU_DELETE_LINK, text: Lang.MENU_DELETE_LINK }
+                    ]
+                }));
+            }
+
+            var sheet = self.sheet,
+                firstRow = sheet.firstRow,
+                firstCol = sheet.firstCol,
+                lastRow = sheet.lastRow,
+                lastCol = sheet.lastCol,
+
+                isSelectRow = firstCol == INFINITY_VALUE,
+                isSelectCol = firstRow == INFINITY_VALUE,
+                isSelectAll = isSelectRow && isSelectCol,
+                isSelectOne = self._isSelectOne,
+                isMergeCell = self.isMergeCell(firstRow, firstCol, lastRow, lastCol),
+                hasCopy,
+                hasLink,
+
+                itemsShow = [],
+                itemsHide = [];
+
+            if (isSelectAll) {
+                itemsShow = [MENU_CUT, MENU_COPY, MENU_SPLIT1, MENU_INSERT_AUTO, MENU_DELETE_AUTO, MENU_CLEAR, MENU_SPLIT2, MENU_SET_FORMAT];
+                itemsHide = [MENU_INSERT, MENU_DELETE, MENU_MERGE_CELLS, MENU_SPLIT_CELLS, MENU_SPLIT3, MENU_INSERT_COMMENT, MENU_NAME_RANGE, MENU_SPLIT5, MENU_FILTER, MENU_SORT, MENU_SPLIT6, MENU_INSERT_LINK, MENU_DELETE_LINK];
+            } else if (isSelectRow || isSelectCol) {
+                itemsShow = [MENU_CUT, MENU_COPY, MENU_SPLIT1, MENU_INSERT_AUTO, MENU_DELETE_AUTO, MENU_CLEAR, MENU_SPLIT2, MENU_MERGE_CELLS, MENU_SPLIT_CELLS, MENU_SPLIT3, MENU_SET_FORMAT, MENU_SPLIT6, MENU_INSERT_LINK, MENU_DELETE_LINK];
+                itemsHide = [MENU_INSERT, MENU_DELETE, MENU_INSERT_COMMENT, MENU_NAME_RANGE, MENU_SPLIT5, MENU_FILTER, MENU_SORT];
+            } else if (isSelectOne || isMergeCell) {
+                itemsShow = [MENU_CUT, MENU_COPY, MENU_SPLIT1, MENU_INSERT, MENU_DELETE, MENU_CLEAR, MENU_SPLIT2, MENU_INSERT_COMMENT, MENU_SET_FORMAT, MENU_NAME_RANGE, MENU_SPLIT6];
+                itemsHide = [MENU_INSERT_AUTO, MENU_DELETE_AUTO, MENU_SELECT_PASTE, MENU_MERGE_CELLS, MENU_SPLIT5, MENU_FILTER, MENU_SORT];
+
+                if (isMergeCell) {
+                    itemsShow.push(MENU_SPLIT_CELLS);
+                    itemsShow.push(MENU_SPLIT3);
+                } else {
+                    itemsHide.push(MENU_SPLIT_CELLS);
+                    itemsHide.push(MENU_SPLIT3);
+                }
+            } else {
+                itemsShow = [MENU_CUT, MENU_COPY, MENU_SPLIT1, MENU_INSERT, MENU_DELETE, MENU_CLEAR, MENU_SPLIT2, MENU_MERGE_CELLS, MENU_SPLIT_CELLS, MENU_SPLIT3, MENU_INSERT_COMMENT, MENU_SET_FORMAT, MENU_NAME_RANGE, MENU_SPLIT5, MENU_FILTER, MENU_SORT, MENU_SPLIT6, MENU_INSERT_LINK, MENU_DELETE_LINK];
+                itemsHide = [MENU_INSERT_AUTO, MENU_DELETE_AUTO];
+            }
+
+            if (hasCopy) {
+                itemsShow.push(MENU_PASTE);
+                itemsShow.push(MENU_SELECT_PASTE);
+                if (!isSelectAll) itemsShow.push(MENU_INSERT_PASTED_CELLS);
+            } else {
+                itemsHide.push(MENU_PASTE);
+                itemsHide.push(MENU_SELECT_PASTE);
+                if (!isSelectAll) itemsHide.push(MENU_INSERT_PASTED_CELLS);
+            }
+
+            if (hasLink) {
+                itemsShow.push(MENU_DELETE_LINK);
+            } else {
+                itemsHide.push(MENU_DELETE_LINK);
+            }
+
+            menu.set({ rangeX: 0, rangeY: 0 }).showItems(itemsShow).hideItems(itemsHide).show(x, y);
+
+            return self;
+        },
+        //隐藏单元格右键菜单
+        hideContextMenu: function () {
+            var self = this,
+                menu = self._menuCells;
+
+            if (menu) menu.hide();
 
             return self;
         },
@@ -3084,6 +3314,8 @@
         updateColWidth: function (col, width) {
             var self = this,
                 sheet = self.sheet,
+                drawFirstCol = self._drawFirstCol,
+                drawLastCol = self._drawLastCol,
                 splitCol = self._splitCol;
 
             if (!isUInt(col) || !isUNum(width)) return self;
@@ -3094,6 +3326,12 @@
 
             if (col < splitCol) self.updateGridSize().showSplitVLine(splitCol);
 
+            var updateLeft = function (first, last) {
+                for (var j = first; j < last; j++) {
+                    if (list[j]) list[j].style.left = self.getCellLeft(j) + "px";
+                }
+            };
+
             var updateEl = function (list) {
                 var el = list[col];
                 if (el) {
@@ -3101,10 +3339,8 @@
                     getFirst(el).style.width = (width - 1) + "px";
                 }
 
-                for (var i = col + 1, len = list.length; i < len; i++) {
-                    el = list[i];
-                    if (el) el.style.left = self.getCellLeft(i) + "px";
-                }
+                if (col + 1 < splitCol) updateLeft(col + 1, splitCol);
+                updateLeft(Math.max(col + 1, drawFirstCol), drawLastCol + 1);
             };
 
             updateEl(self.elColHeads);
@@ -3117,6 +3353,8 @@
         updateRowHeight: function (row, height) {
             var self = this,
                 sheet = self.sheet,
+                drawFirstRow = self._drawFirstRow,
+                drawLastRow = self._drawLastRow,
                 splitRow = self._splitRow;
 
             if (!isUInt(row) || !isUNum(height)) return self;
@@ -3128,24 +3366,30 @@
             if (row < splitRow) self.updateGridSize().showSplitHLine(splitRow);
 
             var elRowNums = self.elRowNums,
-                elCells = self.elCells;
+                elCells = self.elCells,
 
-            for (var i = row, len = elRowNums.length; i < len; i++) {
-                var elSSRowLeft = self.getElSSRowLeft(i),
+                elSSRowLeft = self.getElSSRowLeft(row),
+                elSSRowRight = self.getElSSRowRight(row);
+
+            if (elSSRowLeft) elSSRowRight.style.height = elSSRowLeft.style.height = height + "px";
+
+            var cssInnerHeight = (height - 1) + "px";
+            if (elRowNums[row]) getFirst(elRowNums[row]).style.height = cssInnerHeight;
+            elCells[row].forEach(function (el, j) {
+                if (el) getFirst(el).style.height = cssInnerHeight;
+            });
+
+            var updateTop = function (first, last) {
+                for (var i = first; i < last; i++) {
+                    elSSRowLeft = self.getElSSRowLeft(i);
                     elSSRowRight = self.getElSSRowRight(i);
 
-                if (i == row) {
-                    if (elSSRowLeft) elSSRowRight.style.height = elSSRowLeft.style.height = height + "px";
-
-                    var cssInnerHeight = (height - 1) + "px";
-                    if (elRowNums[i]) getFirst(elRowNums[i]).style.height = cssInnerHeight;
-                    elCells[i].forEach(function (el, j) {
-                        if (el) getFirst(el).style.height = cssInnerHeight;
-                    });
-                } else {
                     if (elSSRowLeft) elSSRowRight.style.top = elSSRowLeft.style.top = self.getCellTop(i) + "px";
                 }
-            }
+            };
+
+            if (row + 1 < splitRow) updateTop(row + 1, splitRow);
+            updateTop(Math.max(row + 1, drawFirstRow), drawLastRow + 1);
 
             return self.drawMerges().selectCellsAuto().updateVScrollHeight();
         },
@@ -3247,9 +3491,11 @@
         updateGridMerges: function () {
             var self = this,
                 sheet = self.sheet,
+                mapMergeIndex = {},
                 mapMerge = {};
 
-            sheet.merges.forEach(function (data) {
+            sheet.merges.forEach(function (data, index) {
+                mapMergeIndex[data] = index;
                 for (var i = data[0], lastRow = data[2]; i <= lastRow; i++) {
                     if (!mapMerge[i]) mapMerge[i] = {};
 
@@ -3259,7 +3505,8 @@
                 }
             });
 
-            self.mapMerge = mapMerge;
+            self._mapMergeIndex = mapMergeIndex;
+            self._mapMerge = mapMerge;
 
             return self;
         },
@@ -3267,7 +3514,7 @@
         //获取合并单元格数据
         getMergeData: function (row, col) {
             //INFINITY_VALUE 表示整行或整列
-            var mapMerge = this.mapMerge,
+            var mapMerge = this._mapMerge,
                 mapRow = mapMerge[INFINITY_VALUE] || mapMerge[row];
 
             return mapRow ? mapRow[INFINITY_VALUE] || mapRow[col] : undefined;
@@ -3335,20 +3582,15 @@
 
         //获取合并单元格元素
         getElMerges: function (data) {
-            return self.mapElMerges[data.join("_")];
+            return self._mapElMerges[data];
         },
 
         //合并单元格 data => [firstRow, firstCol, lastRow, lastCol]
         _mergeCells: function (data) {
             var self = this,
 
-                _firstRow = data[0],
-                _firstCol = data[1],
-                _lastRow = data[2],
-                _lastCol = data[3],
-
-                key = data.join("_"),
-                mapElMerges = self.mapElMerges,
+                key = data + "",
+                mapElMerges = self._mapElMerges,
                 elMerges = mapElMerges[key];
 
             if (!elMerges) {
@@ -3394,9 +3636,41 @@
             return self;
         },
 
+        //拆分单元格
+        _splitCells: function (data) {
+            var self = this,
+
+                mapElMerges = self._mapElMerges,
+                elMerges = mapElMerges[data];
+
+            if (elMerges) {
+                elMerges.forEach(function (el) {
+                    el.parentNode.removeChild(el);
+                });
+            }
+
+            return self;
+        },
+
         //合并单元格
         mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
-            return this._mergeCells([firstRow, firstCol, lastRow, lastCol]);
+            var self = this,
+                data = [firstRow, firstCol, lastRow, lastCol];
+
+            self.sheet.merges.push(data);
+
+            return self.updateGridMerges()._mergeCells(data);
+        },
+
+        //拆分单元格
+        splitCells: function (firstRow, firstCol, lastRow, lastCol) {
+            var self = this,
+                data = [firstRow, firstCol, lastRow, lastCol],
+                index = self._mapMergeIndex[data];
+
+            if (index != undefined) self.sheet.merges.splice(index, 1);
+
+            return self.updateGridMerges()._splitCells(data);
         },
 
         //绘制合并单元格
@@ -3404,7 +3678,7 @@
             var self = this;
             self.elMerges4.innerHTML = self.elMerges3.innerHTML = self.elMerges2.innerHTML = self.elMerges1.innerHTML = "";
 
-            self.mapElMerges = {};
+            self._mapElMerges = {};
             (list || self.sheet.merges).forEach(function (data) {
                 self._mergeCells(data);
             });
@@ -4255,6 +4529,8 @@
             $(".ss-on", elSheet).removeClass("ss-on");
             self.activeColHeads(firstCol, lastCol).activeRowNums(firstRow, lastRow);
 
+            $([elPanel1, elPanel2, elPanel3, elPanel4])[self._isSelectOne ? "addClass" : "removeClass"]("ss-one");
+
             var left = self.getColLeft(firstCol),
                 top = self.getRowTop(firstRow),
                 width = self.getColsWidth(firstCol, lastCol),
@@ -4333,6 +4609,19 @@
                 sheet = self.sheet;
 
             return self.selectCells(sheet.firstRow, sheet.firstCol, sheet.lastRow, sheet.lastCol);
+        },
+
+        //是否处于选择区域中
+        isInSelectCells: function (row, col) {
+            var self = this,
+                sheet = self.sheet,
+                firstRow = sheet.firstRow,
+                firstCol = sheet.firstCol;
+
+            if (firstRow == INFINITY_VALUE) return firstCol == INFINITY_VALUE || col == sheet.firstCol;
+            if (firstCol == INFINITY_VALUE) return row == firstRow;
+
+            return row >= firstRow && row <= sheet.lastRow && col >= firstCol && col <= sheet.lastCol;
         },
 
         //绘制单元格
@@ -4484,7 +4773,7 @@
 ﻿/*
 * ui.footbar.js 底部栏操作
 * author:devin87@qq.com
-* update: 2016/04/05 17:24
+* update: 2016/04/14 12:08
 */
 (function (window, undefined) {
     "use strict";
@@ -4521,34 +4810,6 @@
         TAB_MENU_HIDDEN = 9,
         TAB_MENU_CANCEL_HIDDEN = 10;
 
-    //tab 右键菜单数据
-    var MENU_TAB_DATA = Q.processMenuWidth({
-        width: 140,
-        items: [
-            { id: TAB_MENU_INSERT, text: Lang.INSERT },
-            { id: TAB_MENU_REMOVE, text: Lang.REMOVE },
-            { id: TAB_MENU_RENAME, text: Lang.RENAME },
-            { split: true },
-            { id: TAB_MENU_CLONE, text: Lang.CLONE },
-            {
-                text: Lang.MOVE,
-                group: {
-                    items: [
-                        { id: TAB_MENU_MOVE_TO_LEFT, text: Lang.MOVE_TO_LEFT },
-                        { id: TAB_MENU_MOVE_TO_RIGHT, text: Lang.MOVE_TO_RIGHT },
-                        { id: TAB_MENU_MOVE_TO_TOP, text: Lang.MOVE_TO_TOP },
-                        { id: TAB_MENU_MOVE_TO_BOTTOM, text: Lang.MOVE_TO_BOTTOM }
-                    ]
-                }
-            },
-            //链接菜单:颜色选择器
-            { text: Lang.TAB_COLOR, group: picker },
-            { split: true },
-            { id: TAB_MENU_HIDDEN, text: Lang.HIDDEN },
-            { id: TAB_MENU_CANCEL_HIDDEN, text: Lang.CANCEL_HIDDEN }
-        ]
-    });
-
     UI.extend({
         //初始化底部栏
         initFootbar: function () {
@@ -4584,7 +4845,7 @@
 
             //显示查看所有工作表菜单
             $(".sst-view-all", elFootbar).click(function (e) {
-                var menu = self.menuViewAll || self.createMenuViewAll();
+                var menu = self._menuViewAll || self.createMenuViewAll();
 
                 menu.set({ rangeX: 0, rangeY: elFootbar.offsetTop }).toggle(this.offsetLeft + 2, elFootbar.offsetTop);
 
@@ -4599,14 +4860,39 @@
             }).on("contextmenu", ".sst-item", function (e) {
                 var el = this,
                     elName = $(".sst-name", el)[0],
-                    menuTab = self.menuTab;
+                    menu = self._menuTab;
 
                 tab_sheet_index = el.x;
 
-                if (!menuTab) {
-                    self.menuTab = menuTab = new ContextMenu(MENU_TAB_DATA);
+                if (!menu) {
+                    self._menuTab = menu = new ContextMenu(Q.processMenuWidth({
+                        width: 140,
+                        items: [
+                            { id: TAB_MENU_INSERT, text: Lang.INSERT },
+                            { id: TAB_MENU_REMOVE, text: Lang.REMOVE },
+                            { id: TAB_MENU_RENAME, text: Lang.RENAME },
+                            { split: true },
+                            { id: TAB_MENU_CLONE, text: Lang.CLONE },
+                            {
+                                text: Lang.MOVE,
+                                group: {
+                                    items: [
+                                        { id: TAB_MENU_MOVE_TO_LEFT, text: Lang.MOVE_TO_LEFT },
+                                        { id: TAB_MENU_MOVE_TO_RIGHT, text: Lang.MOVE_TO_RIGHT },
+                                        { id: TAB_MENU_MOVE_TO_TOP, text: Lang.MOVE_TO_TOP },
+                                        { id: TAB_MENU_MOVE_TO_BOTTOM, text: Lang.MOVE_TO_BOTTOM }
+                                    ]
+                                }
+                            },
+                            //链接菜单:颜色选择器
+                            { text: Lang.TAB_COLOR, group: picker },
+                            { split: true },
+                            { id: TAB_MENU_HIDDEN, text: Lang.HIDDEN },
+                            { id: TAB_MENU_CANCEL_HIDDEN, text: Lang.CANCEL_HIDDEN }
+                        ]
+                    }));
 
-                    menuTab.onclick = function (e, item) {
+                    menu.onclick = function (e, item) {
                         switch (item.data.id) {
                             case TAB_MENU_INSERT: self.runApi("addSheet"); break;
                             case TAB_MENU_REMOVE: self.runApi("removeSheet", tab_sheet_index); break;
@@ -4622,9 +4908,9 @@
                     };
                 }
 
-                menuTab[workbook.hasHiddenSheet() ? "enableItems" : "disableItems"](TAB_MENU_CANCEL_HIDDEN);
+                menu[workbook.hasHiddenSheet() ? "enableItems" : "disableItems"](TAB_MENU_CANCEL_HIDDEN);
 
-                menuTab.set({ rangeX: 0, rangeY: elFootbar.offsetTop + 5 }).show(e.x, e.y);
+                menu.set({ rangeX: 0, rangeY: elFootbar.offsetTop + 5 }).show(e.x, e.y);
 
                 picker.set({
                     color: elName.style.color,
@@ -4632,7 +4918,7 @@
                         var sheet = workbook.getSheetAt(el.x);
                         elName.style.color = sheet.tabColor = color;
 
-                        menuTab.hide();
+                        menu.hide();
                     }
                 });
 
@@ -4704,7 +4990,7 @@
 
                 menuItems = [],
                 maxTextWidth = 70,
-                menu = self.menuViewAll;
+                menu = self._menuViewAll;
 
             if (menu) menu.destroy();
 
@@ -4721,7 +5007,7 @@
                 menuItems.push({ id: index, text: name, x: index });
             });
 
-            self.menuViewAll = menu = new ContextMenu({
+            self._menuViewAll = menu = new ContextMenu({
                 width: 50 + maxTextWidth,
                 className: "checked-panel",
                 items: menuItems
@@ -4799,10 +5085,10 @@
 
             self.mapTab = mapTab;
 
-            var menu = self.menuViewAll;
+            var menu = self._menuViewAll;
             if (menu) {
                 menu.destroy();
-                self.menuViewAll = undefined;
+                self._menuViewAll = undefined;
             }
 
             var elHScroll = self.elHScroll,
@@ -4823,7 +5109,7 @@
             var self = this,
                 workbook = self.workbook,
                 mapTab = self.mapTab,
-                menu = self.menuViewAll;
+                menu = self._menuViewAll;
 
             $(mapTab[workbook.index]).removeClass("sst-on");
             $(mapTab[sheet.index]).addClass("sst-on");
@@ -4881,7 +5167,7 @@
 ﻿/*
 * spreadsheets.js
 * author:devin87@qq.com
-* update: 2016/04/01 17:15
+* update: 2016/04/14 11:23
 */
 (function (window, undefined) {
     "use strict";
@@ -5104,11 +5390,27 @@
             return self;
         },
 
+        //滚动到行
         scrollToRow: function (row, isUpdateScrollbar) {
-            return self.ui.scrollToRow(row, isUpdateScrollbar);
+            this.ui.scrollToRow(row, isUpdateScrollbar);
+            return this;
         },
+        //滚动到列
         scrollToCol: function (col, isUpdateScrollbar) {
-            return self.ui.scrollToCol(col, isUpdateScrollbar);
+            this.ui.scrollToCol(col, isUpdateScrollbar);
+            return this;
+        },
+
+        //合并单元格
+        mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
+            this.ui.mergeCells(firstRow, firstCol, lastRow, lastCol);
+            return this;
+        },
+
+        //拆分单元格
+        splitCells: function (firstRow, firstCol, lastRow, lastCol) {
+            this.ui.splitCells(firstRow, firstCol, lastRow, lastCol);
+            return this;
         }
     });
 

@@ -2,7 +2,7 @@
 /*
 * ui.footbar.js 底部栏操作
 * author:devin87@qq.com
-* update: 2016/04/05 17:24
+* update: 2016/04/14 12:08
 */
 (function (window, undefined) {
     "use strict";
@@ -39,34 +39,6 @@
         TAB_MENU_HIDDEN = 9,
         TAB_MENU_CANCEL_HIDDEN = 10;
 
-    //tab 右键菜单数据
-    var MENU_TAB_DATA = Q.processMenuWidth({
-        width: 140,
-        items: [
-            { id: TAB_MENU_INSERT, text: Lang.INSERT },
-            { id: TAB_MENU_REMOVE, text: Lang.REMOVE },
-            { id: TAB_MENU_RENAME, text: Lang.RENAME },
-            { split: true },
-            { id: TAB_MENU_CLONE, text: Lang.CLONE },
-            {
-                text: Lang.MOVE,
-                group: {
-                    items: [
-                        { id: TAB_MENU_MOVE_TO_LEFT, text: Lang.MOVE_TO_LEFT },
-                        { id: TAB_MENU_MOVE_TO_RIGHT, text: Lang.MOVE_TO_RIGHT },
-                        { id: TAB_MENU_MOVE_TO_TOP, text: Lang.MOVE_TO_TOP },
-                        { id: TAB_MENU_MOVE_TO_BOTTOM, text: Lang.MOVE_TO_BOTTOM }
-                    ]
-                }
-            },
-            //链接菜单:颜色选择器
-            { text: Lang.TAB_COLOR, group: picker },
-            { split: true },
-            { id: TAB_MENU_HIDDEN, text: Lang.HIDDEN },
-            { id: TAB_MENU_CANCEL_HIDDEN, text: Lang.CANCEL_HIDDEN }
-        ]
-    });
-
     UI.extend({
         //初始化底部栏
         initFootbar: function () {
@@ -102,7 +74,7 @@
 
             //显示查看所有工作表菜单
             $(".sst-view-all", elFootbar).click(function (e) {
-                var menu = self.menuViewAll || self.createMenuViewAll();
+                var menu = self._menuViewAll || self.createMenuViewAll();
 
                 menu.set({ rangeX: 0, rangeY: elFootbar.offsetTop }).toggle(this.offsetLeft + 2, elFootbar.offsetTop);
 
@@ -117,14 +89,39 @@
             }).on("contextmenu", ".sst-item", function (e) {
                 var el = this,
                     elName = $(".sst-name", el)[0],
-                    menuTab = self.menuTab;
+                    menu = self._menuTab;
 
                 tab_sheet_index = el.x;
 
-                if (!menuTab) {
-                    self.menuTab = menuTab = new ContextMenu(MENU_TAB_DATA);
+                if (!menu) {
+                    self._menuTab = menu = new ContextMenu(Q.processMenuWidth({
+                        width: 140,
+                        items: [
+                            { id: TAB_MENU_INSERT, text: Lang.INSERT },
+                            { id: TAB_MENU_REMOVE, text: Lang.REMOVE },
+                            { id: TAB_MENU_RENAME, text: Lang.RENAME },
+                            { split: true },
+                            { id: TAB_MENU_CLONE, text: Lang.CLONE },
+                            {
+                                text: Lang.MOVE,
+                                group: {
+                                    items: [
+                                        { id: TAB_MENU_MOVE_TO_LEFT, text: Lang.MOVE_TO_LEFT },
+                                        { id: TAB_MENU_MOVE_TO_RIGHT, text: Lang.MOVE_TO_RIGHT },
+                                        { id: TAB_MENU_MOVE_TO_TOP, text: Lang.MOVE_TO_TOP },
+                                        { id: TAB_MENU_MOVE_TO_BOTTOM, text: Lang.MOVE_TO_BOTTOM }
+                                    ]
+                                }
+                            },
+                            //链接菜单:颜色选择器
+                            { text: Lang.TAB_COLOR, group: picker },
+                            { split: true },
+                            { id: TAB_MENU_HIDDEN, text: Lang.HIDDEN },
+                            { id: TAB_MENU_CANCEL_HIDDEN, text: Lang.CANCEL_HIDDEN }
+                        ]
+                    }));
 
-                    menuTab.onclick = function (e, item) {
+                    menu.onclick = function (e, item) {
                         switch (item.data.id) {
                             case TAB_MENU_INSERT: self.runApi("addSheet"); break;
                             case TAB_MENU_REMOVE: self.runApi("removeSheet", tab_sheet_index); break;
@@ -140,9 +137,9 @@
                     };
                 }
 
-                menuTab[workbook.hasHiddenSheet() ? "enableItems" : "disableItems"](TAB_MENU_CANCEL_HIDDEN);
+                menu[workbook.hasHiddenSheet() ? "enableItems" : "disableItems"](TAB_MENU_CANCEL_HIDDEN);
 
-                menuTab.set({ rangeX: 0, rangeY: elFootbar.offsetTop + 5 }).show(e.x, e.y);
+                menu.set({ rangeX: 0, rangeY: elFootbar.offsetTop + 5 }).show(e.x, e.y);
 
                 picker.set({
                     color: elName.style.color,
@@ -150,7 +147,7 @@
                         var sheet = workbook.getSheetAt(el.x);
                         elName.style.color = sheet.tabColor = color;
 
-                        menuTab.hide();
+                        menu.hide();
                     }
                 });
 
@@ -222,7 +219,7 @@
 
                 menuItems = [],
                 maxTextWidth = 70,
-                menu = self.menuViewAll;
+                menu = self._menuViewAll;
 
             if (menu) menu.destroy();
 
@@ -239,7 +236,7 @@
                 menuItems.push({ id: index, text: name, x: index });
             });
 
-            self.menuViewAll = menu = new ContextMenu({
+            self._menuViewAll = menu = new ContextMenu({
                 width: 50 + maxTextWidth,
                 className: "checked-panel",
                 items: menuItems
@@ -317,10 +314,10 @@
 
             self.mapTab = mapTab;
 
-            var menu = self.menuViewAll;
+            var menu = self._menuViewAll;
             if (menu) {
                 menu.destroy();
-                self.menuViewAll = undefined;
+                self._menuViewAll = undefined;
             }
 
             var elHScroll = self.elHScroll,
@@ -341,7 +338,7 @@
             var self = this,
                 workbook = self.workbook,
                 mapTab = self.mapTab,
-                menu = self.menuViewAll;
+                menu = self._menuViewAll;
 
             $(mapTab[workbook.index]).removeClass("sst-on");
             $(mapTab[sheet.index]).addClass("sst-on");

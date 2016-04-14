@@ -2,7 +2,7 @@
 /*
 * spreadsheets.js
 * author:devin87@qq.com
-* update: 2016/04/01 17:15
+* update: 2016/04/14 11:23
 */
 (function (window, undefined) {
     "use strict";
@@ -225,11 +225,27 @@
             return self;
         },
 
+        //滚动到行
         scrollToRow: function (row, isUpdateScrollbar) {
-            return self.ui.scrollToRow(row, isUpdateScrollbar);
+            this.ui.scrollToRow(row, isUpdateScrollbar);
+            return this;
         },
+        //滚动到列
         scrollToCol: function (col, isUpdateScrollbar) {
-            return self.ui.scrollToCol(col, isUpdateScrollbar);
+            this.ui.scrollToCol(col, isUpdateScrollbar);
+            return this;
+        },
+
+        //合并单元格
+        mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
+            this.ui.mergeCells(firstRow, firstCol, lastRow, lastCol);
+            return this;
+        },
+
+        //拆分单元格
+        splitCells: function (firstRow, firstCol, lastRow, lastCol) {
+            this.ui.splitCells(firstRow, firstCol, lastRow, lastCol);
+            return this;
         }
     });
 
