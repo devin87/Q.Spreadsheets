@@ -474,15 +474,17 @@
             if (!menu) {
                 self._menuCells = menu = new ContextMenu(Q.processMenuWidth({
                     width: 180,
+                    className: "ss-menu",
                     items: [
-                        { id: MENU_CUT, text: Lang.MENU_CUT },
-                        { id: MENU_COPY, text: Lang.MENU_COPY },
+                        { id: MENU_CUT, text: Lang.MENU_CUT, ico: '<div class="x-ico2 i-cut"></div>' },
+                        { id: MENU_COPY, text: Lang.MENU_COPY, ico: '<div class="x-ico2 i-copy"></div>' },
                         { id: MENU_PASTE, text: Lang.MENU_PASTE },
                         {
                             id: MENU_SELECT_PASTE,
                             text: Lang.MENU_SELECT_PASTE,
                             group: {
                                 width: 140,
+                                className: "ss-menu",
                                 items: [
                                     { id: MENU_PASTE_VALUE, text: Lang.MENU_PASTE_VALUE },
                                     { id: MENU_PASTE_FORMAT, text: Lang.MENU_PASTE_FORMAT },
@@ -494,12 +496,14 @@
                         },
                         { id: MENU_SPLIT1, split: true },
 
-                        { id: MENU_INSERT_AUTO, text: Lang.MENU_INSERT_AUTO },
+                        { id: MENU_INSERT_AUTO, text: Lang.MENU_INSERT_AUTO, ico: '<div class="x-ico1 i-insert"></div>' },
                         {
                             id: MENU_INSERT,
                             text: Lang.MENU_INSERT,
+                            ico: '<div class="x-ico1 i-insert"></div>',
                             group: {
                                 width: 140,
+                                className: "ss-menu",
                                 items: [
                                     { id: MENU_INSERT_ROW, text: Lang.MENU_INSERT_ROW },
                                     { id: MENU_INSERT_COL, text: Lang.MENU_INSERT_COL },
@@ -509,12 +513,14 @@
                             }
                         },
                         { id: MENU_INSERT_PASTED_CELLS, text: Lang.MENU_INSERT_PASTED_CELLS },
-                        { id: MENU_DELETE_AUTO, text: Lang.MENU_DELETE_AUTO },
+                        { id: MENU_DELETE_AUTO, text: Lang.MENU_DELETE_AUTO, ico: '<div class="x-ico1 i-del"></div>' },
                         {
                             id: MENU_DELETE,
                             text: Lang.MENU_DELETE,
+                            ico: '<div class="x-ico1 i-del"></div>',
                             group: {
                                 width: 140,
+                                className: "ss-menu",
                                 items: [
                                     { id: MENU_DELETE_ROW, text: Lang.MENU_DELETE_ROW },
                                     { id: MENU_DELETE_COL, text: Lang.MENU_DELETE_COL },
@@ -528,6 +534,7 @@
                             text: Lang.MENU_CLEAR,
                             group: {
                                 width: 140,
+                                className: "ss-menu",
                                 items: [
                                     { id: MENU_CLEAR_CONTENT, text: Lang.MENU_CLEAR_CONTENT },
                                     { id: MENU_CLEAR_FORMAT, text: Lang.MENU_CLEAR_FORMAT },
@@ -537,8 +544,8 @@
                         },
                         { id: MENU_SPLIT2, split: true },
 
-                        { id: MENU_MERGE_CELLS, text: Lang.MENU_MERGE_CELLS },
-                        { id: MENU_SPLIT_CELLS, text: Lang.MENU_SPLIT_CELLS },
+                        { id: MENU_MERGE_CELLS, text: Lang.MENU_MERGE_CELLS, ico: '<div class="x-ico1 i-merge"></div>' },
+                        { id: MENU_SPLIT_CELLS, text: Lang.MENU_SPLIT_CELLS, ico: '<div class="x-ico1 i-split"></div>' },
                         { id: MENU_SPLIT3, split: true },
 
                         //{ id: MENU_CLEAR_CONTENT, text: Lang.MENU_CLEAR_CONTENT },
@@ -557,6 +564,7 @@
                             text: Lang.MENU_SORT,
                             group: {
                                 width: 140,
+                                className: "ss-menu",
                                 items: [
                                     { id: MENU_SORT_ASC, text: Lang.MENU_SORT_ASC },
                                     { id: MENU_SORT_DESC, text: Lang.MENU_SORT_DESC },
@@ -566,10 +574,23 @@
                         },
                         { id: MENU_SPLIT6, split: true },
 
-                        { id: MENU_INSERT_LINK, text: Lang.MENU_INSERT_LINK },
+                        { id: MENU_INSERT_LINK, text: Lang.MENU_INSERT_LINK, ico: '<div class="x-ico2 i-link"></div>' },
                         { id: MENU_DELETE_LINK, text: Lang.MENU_DELETE_LINK }
                     ]
                 }));
+
+                menu.onclick = function (e, item) {
+                    var sheet = self.sheet,
+                        firstRow = sheet.firstRow,
+                        firstCol = sheet.firstCol,
+                        lastRow = sheet.lastRow,
+                        lastCol = sheet.lastCol;
+
+                    switch (item.data.id) {
+                        case MENU_MERGE_CELLS: self.mergeCells(firstRow, firstCol, lastRow, lastCol); break;
+                        case MENU_SPLIT_CELLS: self.splitCells(firstRow, firstCol, lastRow, lastCol); break;
+                    }
+                };
             }
 
             var sheet = self.sheet,
@@ -855,7 +876,7 @@
 
             if (col < splitCol) self.updateGridSize().showSplitVLine(splitCol);
 
-            var updateLeft = function (first, last) {
+            var updateLeft = function (list, first, last) {
                 for (var j = first; j < last; j++) {
                     if (list[j]) list[j].style.left = self.getCellLeft(j) + "px";
                 }
@@ -868,8 +889,8 @@
                     getFirst(el).style.width = (width - 1) + "px";
                 }
 
-                if (col + 1 < splitCol) updateLeft(col + 1, splitCol);
-                updateLeft(Math.max(col + 1, drawFirstCol), drawLastCol + 1);
+                if (col + 1 < splitCol) updateLeft(list, col + 1, splitCol);
+                updateLeft(list, Math.max(col + 1, drawFirstCol), drawLastCol + 1);
             };
 
             updateEl(self.elColHeads);
@@ -1072,7 +1093,7 @@
         },
 
         //按区域划分合并数据([区域内,区域外])
-        splitAllMerges: function (firstRow, firstCol, lastRow, lastCol) {
+        getMergesListByRange: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
                 dataMerges = self.sheet.merges;
 
@@ -1181,25 +1202,58 @@
             return self;
         },
 
-        //合并单元格
+        //合并单元格并拆分之前区域内的其它合并单元格
         mergeCells: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
-                data = [firstRow, firstCol, lastRow, lastCol];
+                data = [firstRow, firstCol, lastRow, lastCol],
 
-            self.sheet.merges.push(data);
+                mergesList = self.getMergesListByRange(firstRow, firstCol, lastRow, lastCol),
+                inRegionList = mergesList[0],   //区域内的合并区域，拆分
+                outRegionList = mergesList[1];  //区域外的合并区域，保留
+
+            outRegionList.push(data);
+            self.sheet.merges = outRegionList;
+
+            //直接重绘
+            //return self.updateGridMerges().drawMerges();
+
+            //拆分之前区域内的其它合并单元格
+            inRegionList.forEach(function (data) {
+                self._splitCells(data);
+            });
 
             return self.updateGridMerges()._mergeCells(data);
         },
 
-        //拆分单元格
+        //拆分单元格,包括该范围内的所有合并区域
         splitCells: function (firstRow, firstCol, lastRow, lastCol) {
             var self = this,
-                data = [firstRow, firstCol, lastRow, lastCol],
-                index = self._mapMergeIndex[data];
+                sheet = self.sheet;
 
-            if (index != undefined) self.sheet.merges.splice(index, 1);
+            //拆分单独的合并区域
+            //if (self.isMergeCell(firstRow, firstCol, lastRow, lastCol)) {
+            //    var data = [firstRow, firstCol, lastRow, lastCol],
+            //    index = self._mapMergeIndex[data];
 
-            return self.updateGridMerges()._splitCells(data);
+            //    if (index != undefined) sheet.merges.splice(index, 1);
+
+            //    return self.updateGridMerges()._splitCells(data);
+            //}
+
+            var mergesList = self.getMergesListByRange(firstRow, firstCol, lastRow, lastCol),
+                inRegionList = mergesList[0],   //区域内的合并区域，拆分
+                outRegionList = mergesList[1];  //区域外的合并区域，保留
+
+            sheet.merges = outRegionList;
+
+            //return self.updateGridMerges().drawMerges();
+
+            //拆分区域内的其它合并单元格
+            inRegionList.forEach(function (data) {
+                self._splitCells(data);
+            });
+
+            return self.updateGridMerges();
         },
 
         //绘制合并单元格
@@ -1225,15 +1279,25 @@
                 elMerges3 = elMerges1.cloneNode(true),
                 elMerges4 = elMerges1.cloneNode(true);
 
-            self.elGrid1.appendChild(elMerges1);
-            self.elGrid2.appendChild(elMerges2);
-            self.elGrid3.appendChild(elMerges3);
-            self.elGrid4.appendChild(elMerges4);
+            if (!self.elMerges1) {
+                self.elGrid1.appendChild(elMerges1);
+                self.elMerges1 = elMerges1;
+            }
 
-            self.elMerges1 = elMerges1;
-            self.elMerges2 = elMerges2;
-            self.elMerges3 = elMerges3;
-            self.elMerges4 = elMerges4;
+            if (!self.elMerges2) {
+                self.elGrid2.appendChild(elMerges2);
+                self.elMerges2 = elMerges2;
+            }
+
+            if (!self.elMerges3) {
+                self.elGrid3.appendChild(elMerges3);
+                self.elMerges3 = elMerges3;
+            }
+
+            if (!self.elMerges4) {
+                self.elGrid4.appendChild(elMerges4);
+                self.elMerges4 = elMerges4;
+            }
 
             return self.updateGridMerges().drawMerges();
         },
@@ -2258,7 +2322,7 @@
                 sheet = self.sheet;
 
             //test
-            extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 0, scrollCol: 0, firstRow: 1, firstCol: 4, lastRow: 6, lastCol: 5, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 }, merges: [[1, 1, 3, 2], [4, 5, 8, 6]] }, true);
+            //extend(sheet, { isFreeze: true, freezeRow: 3, freezeCol: 3, scrollRow: 0, scrollCol: 0, firstRow: 1, firstCol: 4, lastRow: 6, lastCol: 5, colWidths: { 1: 120, 7: 133, 8: 145, 9: 120, 12: 98, 20: 64, 38: 155 }, rowHeights: { 1: 67, 3: 45 }, merges: [[1, 1, 3, 2], [4, 5, 8, 6]] }, true);
 
             //sheet.isFreeze = false;
 

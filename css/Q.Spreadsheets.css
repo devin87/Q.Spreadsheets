@@ -1,5 +1,48 @@
 html { *overflow: hidden; }
 
+/* ------------------ ui.toolbar ------------------ */
+.x-ico1, .sst-arrow-up, .sst-resize { background: url(../images/SS/icons1.gif) no-repeat; }
+.ss-toolbar li span, .x-ico2 { background: url(../images/SS/icons2.gif) no-repeat; }
+.x-ico1, .x-ico2 { width: 16px; height: 16px; margin: 0 auto; }
+
+.x-insert span, .i-insert { background-position: -224px 0; }
+.x-del span, .i-del { background-position: -240px 0; }
+.x-merge span, .i-merge { background-position: -259px 0; }
+.x-split span, .i-split { background-position: -278px 0; }
+
+.sst-arrow-up { width: 18px; height: 20px; background-position: -36px 0; cursor: pointer; margin: 0 auto; }
+.sst-arrow-up:hover { background-position: -54px 0; }
+
+.sst-resize { width: 6px; height: 18px; margin: auto; background-position: -217px 0; cursor: e-resize; }
+
+.x-save span, .i-save { background-position: 0 0; }
+.x-undo span, .i-undo { background-position: -32px 0; }
+.x-redo span, .i-redo { background-position: -48px 0; }
+.x-cut span, .i-cut { background-position: -80px 0; }
+.x-copy span, .i-copy { background-position: -64px 0; }
+.x-paste span, .i-paste { background-position: -96px 0; }
+.x-print span, .i-print { background-position: -16px 0; }
+.x-bold span, .i-bold { background-position: -224px 0; }
+.x-italic span, .i-italic { background-position: -240px 0; }
+.x-underline span, .i-underline { background-position: -432px 0; }
+.x-strike span, .i-strike { background-position: -720px 0; }
+.x-sup span, .i-sup { background-position: -704px 0; }
+.x-sub span, .i-sub { background-position: -688px 0; }
+.x-color span, .i-color { background-position: -256px 0; }
+.x-bgColor span, .i-bgColor { background-position: -528px 0; }
+.x-alignLeft span, .i-alignLeft { background-position: -272px 0; }
+.x-alignCenter span, .i-alignCenter { background-position: -288px 0; }
+.x-alignRight span, .i-alignRight { background-position: -304px 0; }
+.x-vAlignTop span, .i-vAlignTop { background-position: -320px 0; }
+.x-vAlignMiddle span, .i-vAlignMiddle { background-position: -336px 0; }
+.x-vAlignBottom span, .i-vAlignBottom { background-position: -352px 0; }
+.x-link span, .i-link { background-position: -784px 0; }
+.x-image span, .i-image { background-position: -192px 0; }
+.x-table span, .i-table { background-position: -560px 0; }
+.x-clearFormat span, .i-clearFormat { background-position: -480px 0; }
+
+.ss-menu .x-icon { margin-top: 4px; }
+
 /* ------------------ ui.grid ------------------ */
 .ss-view { position: relative; min-height: 200px; overflow: hidden; }
 
@@ -83,9 +126,9 @@ html { *overflow: hidden; }
 .sst-resize { width: 6px; height: 18px; margin: auto; background-position: -217px 0; cursor: e-resize; }
 
 
-.sst-tabs { }
+.sst-tabs { margin-top: -1px; }
 
-.sst-item, .sst-insert { /*float: left; display: inline;*/ background: url(../images/SS/tab_left.gif) no-repeat scroll left bottom; padding: 0 2px; height: 20px; margin-top: -1px; cursor: pointer; }
+.sst-item, .sst-insert { /*float: left; display: inline;*/ background: url(../images/SS/tab_left.gif) no-repeat scroll left bottom; padding: 0 2px; height: 20px; /*margin-top: -1px;*/ cursor: pointer; }
 .sst-name { background: url(../images/SS/tab_right.gif) no-repeat scroll right bottom; height: 20px; line-height: 18px; padding: 0 8px; white-space: nowrap; float: left; }
 .sst-on { background-image: url(../images/SS/tab_left_on.gif); }
 .sst-on .sst-name { background-image: url(../images/SS/tab_right_on.gif); font-weight: bold; }
